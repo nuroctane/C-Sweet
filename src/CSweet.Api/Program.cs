@@ -232,6 +232,7 @@ app.MapAgentMemoryEndpoints();
 app.MapCommunicationEndpoints();
 app.MapAgentManagementEndpoints();
 app.MapPluginManagementEndpoints();
+app.MapConnectionServiceAdministrationEndpoints();
 app.MapPluginSetupEndpoints();
 app.MapConnectorStandingPolicyEndpoints();
 app.MapSecurityAuditEndpoints();
