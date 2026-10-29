@@ -107,6 +107,7 @@ public sealed record ApprovalDashboardResponse(
     int PendingCount,
     IReadOnlyList<ApprovalDashboardItemResponse> Items)
 {
+    public int CapabilityApprovalPendingCount { get; init; }
     public IReadOnlyList<ProjectIncidentAttentionResponse> ProjectIncidents { get; init; } = [];
 }
 

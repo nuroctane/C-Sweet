@@ -24,7 +24,7 @@
 
 .communications-workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(19rem, .86fr); border: 1px solid var(--cs-border); border-radius: 16px; background: #fff; }
 .communications-roster, .communications-picker { min-width: 0; padding: 1.5rem; }
-.communications-roster { border-right: 1px solid var(--cs-border); }
+.communications-roster { border-inline-end: 1px solid var(--cs-border); }
 .communications-section-heading { justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
 .communications-section-heading h2, .dialog-header h2, .guide-content h3 { margin: .15rem 0 0; color: var(--cs-navy); font-size: 1.08rem; font-weight: 800; letter-spacing: -.025em; }
 .communications-kicker { color: var(--cs-mint-strong); font-size: .68rem; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
@@ -55,7 +55,7 @@
 .communications-list-action:disabled { opacity: .5; cursor: default; }
 .communications-list-action ::deep .mud-icon-root { font-size: 1.05rem; }
 
-.communications-plugin-choice { display: grid; width: 100%; grid-template-columns: 2.65rem minmax(0, 1fr) auto; align-items: center; gap: .8rem; padding: .85rem; border: 1px solid var(--cs-border); border-radius: 12px; background: #fff; color: inherit; cursor: pointer; text-align: left; }
+.communications-plugin-choice { display: grid; width: 100%; grid-template-columns: 2.65rem minmax(0, 1fr) auto; align-items: center; gap: .8rem; padding: .85rem; border: 1px solid var(--cs-border); border-radius: 12px; background: #fff; color: inherit; cursor: pointer; text-align: start; }
 .communications-plugin-choice:hover { transform: translateY(-1px); border-color: var(--cs-navy); box-shadow: 0 7px 18px rgba(24, 35, 63, .08); }
 .communications-plugin-choice.connected { background: #f8fcfa; }
 .communications-plugin-choice.custom-source { border-style: dashed; background: #fbfcfd; }
@@ -149,7 +149,7 @@
 .guided-checklist {
     display: grid;
     gap: .48rem;
-    padding-left: 1.35rem;
+    padding-inline-start: 1.35rem;
     margin: .8rem 0 1rem;
     color: #384b5d;
     font-size: .75rem;
@@ -169,7 +169,7 @@
 .beginner-note {
     margin-top: .85rem;
     padding: .75rem .85rem;
-    border-left: 3px solid var(--cs-mint-strong);
+    border-inline-start: 3px solid var(--cs-mint-strong);
     border-radius: 0 8px 8px 0;
     background: #f2faf6;
     color: #36574a;
@@ -214,7 +214,7 @@
 }
 
 .manifest-identity > div + div {
-    border-left: 1px solid var(--cs-border);
+    border-inline-start: 1px solid var(--cs-border);
 }
 
 .manifest-identity span,
@@ -285,7 +285,7 @@
 
 @media (max-width: 900px) {
     .communications-workspace { grid-template-columns: 1fr; }
-    .communications-roster { border-right: 0; border-bottom: 1px solid var(--cs-border); }
+    .communications-roster { border-inline-end: 0; border-bottom: 1px solid var(--cs-border); }
     .communications-loading { min-height: 10rem; }
 }
 
@@ -304,7 +304,7 @@
     .connection-form,
     .manifest-identity,
     .permission-grid { grid-template-columns: 1fr; }
-    .manifest-identity > div + div { border-top: 1px solid var(--cs-border); border-left: 0; }
+    .manifest-identity > div + div { border-top: 1px solid var(--cs-border); border-inline-start: 0; }
     .communications-actions,
     .communications-actions > div { align-items: stretch; flex-direction: column; }
     .communications-actions ::deep .mud-button-root,

@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "promo-demo",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "tools/CSweet.Promo.Demo/CSweet.Promo.Demo.csproj"],
+      "port": 5198,
+      "url": "http://127.0.0.1:5198"
+    }
+  ]
+}
