@@ -537,7 +537,6 @@ public sealed class OrganizationDeletionTests
         {
             typeof(Approval), typeof(ArtifactPackageMember), typeof(BenchmarkAssessment),
             typeof(AgentCoordinationTurn), typeof(ConversationParticipant),
-            typeof(PluginAccountResource), typeof(PluginAccountRevocationJob),
             // Personal Assistant installations use personal scope, not the business ID.
             // Their profiles stay with the account and must not be purged with a business.
             typeof(PersonalAssistantProfile),
