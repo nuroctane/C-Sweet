@@ -248,5 +248,17 @@
   "Plugins.Import.BundleInstalled": "検証済みのプラグインバンドルをインストールしました。準備ができ次第、ランタイムが起動します。",
   "Plugins.Import.Error.BundleType": "C-Sweet のプラグインバンドル (.cspb) を選択してください。",
   "Plugins.Import.Error.BundleSize": "プラグインバンドルが 512 MB の上限を超えています。",
-  "Plugins.Import.Error.Agent": "エージェントパッケージは「インストール済みエージェント」で扱います。サービスまたはコネクタのプラグインを選択してください。"
+  "Plugins.Import.Error.Agent": "エージェントパッケージは「インストール済みエージェント」で扱います。サービスまたはコネクタのプラグインを選択してください。",
+  "Plugins.Installed.CheckForUpdates": "更新を確認",
+  "Plugins.Installed.CheckForUpdatesFor": "{name} の更新を確認",
+  "Plugins.Installed.UpdateTo": "v{version} に更新",
+  "Plugins.Installed.UpdateReviewVersion": "v{version} が利用可能 — 確認",
+  "Plugins.Installed.UpToDate": "最新です",
+  "Plugins.Installed.NoUpdates": "インストール済みのプラグインはすべて最新です。",
+  "Plugins.Installed.UpdatesAvailable": "{count} 件のプラグイン更新があります。",
+  "Plugins.Installed.UpdateTimedOut": "ステージされた更新の検証が時間内に完了しませんでした。ページを更新してもう一度お試しください。",
+  "Plugins.Installed.UpdateVerificationFailed": "ステージされた更新は検証に失敗しました: {detail}",
+  "Plugins.Installed.Updated": "v{version} に更新しました。",
+  "Plugins.Installed.UpdatedReconnect": "v{version} に更新しました。保存済みのキーとエージェントの許可は新しいリビジョンに引き継がれません。API キーアカウントを開いてキーを保存し、エージェントに再度許可してください。",
+  "Plugins.Installed.ApiKeyAccounts": "API キーアカウント"
 }

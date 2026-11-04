@@ -206,8 +206,13 @@ public static class DependencyInjection
         builder.Services.AddScoped<IBusinessAgentInstallationCleanup>(sp => sp.GetRequiredService<AgentInstallationService>());
         builder.Services.AddScoped<IPluginOrganizationGrantService, PluginOrganizationGrantService>();
         builder.Services.AddScoped<IPluginAuthorizationPolicy, PersistedPluginAuthorizationPolicy>();
-        builder.Services.AddScoped<IPluginSecretStore, DataProtectionPluginSecretStore>();
+        builder.Services.AddScoped<DataProtectionPluginSecretStore>();
+        builder.Services.AddScoped<IPluginSecretStore>(sp=>sp.GetRequiredService<DataProtectionPluginSecretStore>());
+        builder.Services.AddScoped<IPluginSecretReferenceRebinder>(sp=>sp.GetRequiredService<DataProtectionPluginSecretStore>());
         builder.Services.Configure<PluginConnectionOptions>(builder.Configuration.GetSection(PluginConnectionOptions.SectionName));
+        builder.Services.PostConfigure<PluginConnectionOptions>(settings => ManagedConnectionHostConfiguration.RequireMatch(
+            builder.Configuration[ManagedConnectionHostConfiguration.HashKey], settings.Managed.Enabled,
+            settings.Managed.ServiceOrigin, settings.Managed.ReturnUri, settings.Managed.RegistrationPath, settings.Managed.CustomerOwnedProfiles));
         builder.Services.AddScoped<ConnectionServiceSelectionStore>();
         builder.Services.Configure<ConnectionServiceNetworkOptions>(builder.Configuration.GetSection(ConnectionServiceNetworkOptions.Section));
         builder.Services.Configure<ConnectionServiceOwnerOptions>(builder.Configuration.GetSection(ConnectionServiceOwnerOptions.Section));
@@ -235,6 +240,7 @@ public static class DependencyInjection
         builder.Services.AddScoped<IPluginSetupService, PluginSetupService>();
         builder.Services.AddScoped<PluginConnectionCleanupService>();
         builder.Services.AddScoped<PluginAccountService>();
+        builder.Services.AddScoped<PluginAccountUpgradeService>();
         builder.Services.AddScoped<PluginAccountDataExposureService>();
         builder.Services.AddScoped<IPluginAccountDataDeletionParticipant, PluginRuntimeDataDeletionParticipant>();
         builder.Services.AddScoped<IPluginAccountDataDeletionParticipant, PluginRetainedEvidenceDeletionParticipant>();
@@ -245,6 +251,7 @@ public static class DependencyInjection
         builder.Services.AddScoped<ConnectorPlanService>();
         builder.Services.AddScoped<ConnectorStandingPolicyService>();
         builder.Services.AddScoped<IConnectorHttpTransport, ConnectorHttpTransport>();
+        builder.Services.AddScoped<IManagedConnectorRelay, ManagedConnectorRelay>();
         builder.Services.AddScoped<IConnectorMediaTransport, ConnectorMediaTransport>();
         builder.Services.AddScoped<ConnectorMediaTransferService>();
         builder.Services.AddScoped<ConnectorReadExecutor>();
@@ -381,6 +388,13 @@ public static class DependencyInjection
         builder.Services.AddScoped<LocalDirectoryAgentCatalogProvider>();
         builder.Services.AddScoped<ILocalAgentSourceArchiveService>(
             services => services.GetRequiredService<LocalDirectoryAgentCatalogProvider>());
+        // The local directory is a developer source: on by default only in Development, and never on a host
+        // unless CSweet:AgentCatalog:LocalDirectoryEnabled says so. Installing from it still goes through the
+        // same manifest review, grants and owner approval as any other source.
+        var catalogOptions = builder.Configuration.GetSection(AgentCatalogOptions.SectionName).Get<AgentCatalogOptions>() ?? new();
+        if (catalogOptions.LocalDirectoryEnabled ?? builder.Environment.IsDevelopment())
+            builder.Services.AddScoped<IAgentCatalogProvider>(
+                services => services.GetRequiredService<LocalDirectoryAgentCatalogProvider>());
         builder.Services.AddScoped<IAgentCatalogProvider, FirstPartyAgentCatalogProvider>();
         builder.Services.AddScoped<IAgentCatalogProvider, MarketplaceAgentCatalogProvider>();
         builder.Services.AddScoped<IAgentCatalogService, AgentCatalogService>();

@@ -42,6 +42,16 @@ public static class PluginAccountEndpoints
                 Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.Include(db.AgentInstallations,x=>x.PackageVersion),x=>x.Id==installationId,ct);
             return Results.Ok(new PluginPackageReview(installation.PackageVersion!.PackageDigest ?? "",installation.PackageVersion.ManifestJson,installation.BusinessId));
         });
+        group.MapGet("/upgrade/review",async(Guid installationId,HttpContext http,[FromServices] PluginAccountUpgradeService upgrades,CancellationToken ct)=>
+            Results.Ok(await upgrades.ReviewAsync(http.User.GetApplicationUserId()!.Value,installationId,ct)));
+        group.MapGet("/upgrade",async(Guid installationId,HttpContext http,[FromServices] PluginAccountUpgradeService upgrades,CancellationToken ct)=>
+            Results.Ok(new PluginAccountUpgradeStatus(await upgrades.StatusAsync(http.User.GetApplicationUserId()!.Value,installationId,ct))));
+        group.MapPost("/upgrade",async(Guid installationId,ApprovePluginAccountUpgrade request,HttpContext http,[FromServices] PluginAccountUpgradeService upgrades,CancellationToken ct)=>
+            Results.Ok(await upgrades.ApproveAsync(http.User.GetApplicationUserId()!.Value,installationId,request,ct)));
+        group.MapPost("/upgrade/{upgradeId:guid}/resume",async(Guid installationId,Guid upgradeId,HttpContext http,[FromServices] PluginAccountUpgradeService upgrades,CancellationToken ct)=>
+            Results.Ok(await upgrades.ResumeAsync(http.User.GetApplicationUserId()!.Value,installationId,upgradeId,ct)));
+        group.MapPost("/upgrade/{upgradeId:guid}/cancel",async(Guid installationId,Guid upgradeId,HttpContext http,[FromServices] PluginAccountUpgradeService upgrades,CancellationToken ct)=>
+            Results.Ok(await upgrades.CancelAsync(http.User.GetApplicationUserId()!.Value,installationId,upgradeId,ct)));
         group.MapPost("/connect", async (Guid installationId, ConnectPluginAccountRequest request, HttpContext http,
             [FromServices] PluginAccountService accounts, CancellationToken ct) =>
         {
@@ -87,8 +97,9 @@ public static class PluginAccountEndpoints
             [FromServices] ManagedPluginConnectionGateway gateway, CancellationToken ct) =>
         { await gateway.CompletePairing(new(request.DeploymentId, request.TenantId, request.Revision), ct); return Results.NoContent(); });
         group.MapPost("/setup/{setupId:guid}/retry", async (Guid installationId, Guid setupId, HttpContext http,
+            [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] ResumePluginImportRequest? request,
             [FromServices] PluginAccountService accounts, CancellationToken ct) =>
-        { await accounts.RetryImportAsync(http.User.GetApplicationUserId()!.Value, installationId, setupId, ct); return Results.NoContent(); });
+            Results.Ok(await accounts.ResumeImportAsync(http.User.GetApplicationUserId()!.Value, installationId, setupId, request?.ExpectedRevision, ct)));
         group.MapPut("/{accountId:guid}/business-access", async (Guid installationId, Guid accountId, SavePluginAccountGrantRequest request, HttpContext http,
             [FromServices] PluginAccountService accounts, CancellationToken ct) =>
         { await accounts.SaveGrantAsync(http.User.GetApplicationUserId()!.Value, installationId, accountId, request, ct); return Results.NoContent(); });

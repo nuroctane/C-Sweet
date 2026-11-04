@@ -37,11 +37,11 @@
         @if (_access.Capabilities.Contains("deployments.enroll"))
         {
             <MudText Typo="Typo.h6">Enroll a customer installation</MudText>
-            <MudTextField T="string" Label="Tenant ID" @bind-Value="_tenant" />
-            <MudTextField T="string" Label="Installation name" @bind-Value="_name" />
-            <MudTextField T="string" Label="Public key from customer pairing" @bind-Value="_key" />
-            <MudTextField T="string" Label="Key ID" @bind-Value="_keyId" />
-            <MudTextField T="string" Label="Exact HTTPS browser return URI" @bind-Value="_returnUri" />
+            <MudTextField T="string" Label="Tenant ID" @bind-Value="_tenant" Immediate="true" />
+            <MudTextField T="string" Label="Installation name" @bind-Value="_name" Immediate="true" />
+            <MudTextField T="string" Label="Public key from customer pairing" @bind-Value="_key" Immediate="true" />
+            <MudTextField T="string" Label="Key ID" @bind-Value="_keyId" Immediate="true" />
+            <MudTextField T="string" Label="Exact HTTPS browser return URI" @bind-Value="_returnUri" Immediate="true" />
             <MudButton Disabled="_busy" OnClick="Enroll">Approve customer enrollment</MudButton>
         }
         @if (_access.Capabilities.Contains("deployments.revoke"))
@@ -64,18 +64,36 @@
     private string? _bootstrap, _result, _error;
     private string _format = "google-web-client", _profile = "com.csweet.google.youtube", _package = "", _tenant = "", _name = "", _key = "", _keyId = "", _returnUri = "", _revokeId = "";
     private JsonElement? _credential;
-    private async Task Run(Func<Task> operation) { _busy = true; _error = null; _result = null; try { await operation(); } catch { _error = "Operation unavailable. Check local bootstrap and current permissions. A submitted mutation may have succeeded; check service state before retrying."; _access = null; } finally { _busy = false; } }
-    private Task Prepare() => Run(async () => { using var r = await Http.PostAsync("api/plugins/connection-service/owner/prepare", null); r.EnsureSuccessStatusCode(); var details = await r.Content.ReadFromJsonAsync<OwnerBootstrapDetails>(); _bootstrap = JsonSerializer.Serialize(details, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }); });
-    private Task Access() => Run(async () => { using var r = await Http.PostAsync("api/plugins/connection-service/owner/access", null); r.EnsureSuccessStatusCode(); _access = await r.Content.ReadFromJsonAsync<AccessView>(); });
+    private async Task Run(Func<Task> operation) { _busy = true; _error = null; _result = null; try { await operation(); } catch (OwnerPanelOperationException failure) { _error = failure.Message; _access = null; } catch { _error = "Operation unavailable. Check local bootstrap and current permissions. A submitted mutation may have succeeded; check service state before retrying."; _access = null; } finally { _busy = false; } }
+    private Task Prepare() => Run(async () => { using var r = await Http.PostAsync("api/plugins/connection-service/owner/prepare", null); OwnerFailureDisplay.EnsureSuccess(r); var details = await r.Content.ReadFromJsonAsync<OwnerBootstrapDetails>(); _bootstrap = JsonSerializer.Serialize(details, new JsonSerializerOptions(JsonSerializerDefaults.Web) { WriteIndented = true }); });
+    private Task Access() => Run(async () => { using var r = await Http.PostAsync("api/plugins/connection-service/owner/access", null); OwnerFailureDisplay.EnsureSuccess(r); _access = await r.Content.ReadFromJsonAsync<AccessView>(); });
     private async Task LoadCredential(InputFileChangeEventArgs e) { _credential = null; try { using var stream = e.File.OpenReadStream(65536); using var document = await JsonDocument.ParseAsync(stream); _credential = document.RootElement.Clone(); } catch { _error = "Choose a provider export JSON file no larger than 64 KiB."; } }
     private async Task<JsonDocument> Post(string action, object payload)
     {
         if (_access is null) throw new InvalidOperationException();
         using var r = await Http.PostAsJsonAsync("api/plugins/connection-service/owner/" + action, new { grantRevision = _access.GrantRevision, request = payload });
-        r.EnsureSuccessStatusCode(); return await JsonDocument.ParseAsync(await r.Content.ReadAsStreamAsync());
+        OwnerFailureDisplay.EnsureSuccess(r); return await JsonDocument.ParseAsync(await r.Content.ReadAsStreamAsync());
     }
     private Task Import() => Run(async () => { try { using var r = await Post("import", new { format = _format, profileId = _profile, document = _credential }); _result = "Profile: " + r.RootElement.GetProperty("profileId").GetString() + "\nCallback: " + r.RootElement.GetProperty("callbackUri").GetString() + "\nRevision: " + r.RootElement.GetProperty("publicRevision").GetInt64(); } finally { _credential = null; } });
     private Task Approve() => Run(async () => { using var document = JsonDocument.Parse(_package); using var r = await Post("approve", document.RootElement); _result = "Package binding accepted."; });
-    private Task Enroll() => Run(async () => { using var r = await Post("enroll", new { tenantId = _tenant, deployment = new { name = _name, publicKey = _key, keyId = _keyId, returnUris = new[] { _returnUri } } }); _result = "Deployment: " + r.RootElement.GetProperty("deploymentId").GetGuid() + "\nTenant: " + r.RootElement.GetProperty("tenantId").GetString() + "\nRevision: " + r.RootElement.GetProperty("revision").GetInt64(); });
+    private Task Enroll()
+    {
+        // Match the service's identifier alphabet and length without trimming or changing tenant identity.
+        if (string.IsNullOrEmpty(_tenant) || _tenant.Length > 128 || !char.IsAsciiLetterOrDigit(_tenant[0]) ||
+            _tenant.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-')))
+        {
+            _result = null;
+            _error = "Enter a tenant ID of 1–128 ASCII letters, digits, dots, underscores or hyphens, starting with a letter or digit.";
+            return Task.CompletedTask;
+        }
+        if (_access is null || !_access.Capabilities.Contains("deployments.enroll") ||
+            (_access.TenantScope != "*" && !string.Equals(_access.TenantScope, _tenant, StringComparison.Ordinal)))
+        {
+            _result = null;
+            _error = "The tenant ID must match your current service enrollment permission. Check your service permissions before submitting.";
+            return Task.CompletedTask;
+        }
+        return Run(async () => { using var r = await Post("enroll", new { tenantId = _tenant, deployment = new { name = _name, publicKey = _key, keyId = _keyId, returnUris = new[] { _returnUri } } }); _result = "Deployment: " + r.RootElement.GetProperty("deploymentId").GetGuid() + "\nTenant: " + r.RootElement.GetProperty("tenantId").GetString() + "\nRevision: " + r.RootElement.GetProperty("revision").GetInt64(); });
+    }
     private Task Revoke() => Run(async () => { using var r = await Post("revoke", new { tenantId = _tenant, deploymentId = Guid.Parse(_revokeId) }); _result = "Deployment revoked; provider cleanup may still be pending."; });
 }

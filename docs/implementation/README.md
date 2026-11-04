@@ -24,10 +24,17 @@ The first production goal is not the marketplace. The first production goal is a
 - [Agent harness and routing](agent-harness-and-routing.md): VM-to-platform path, capability dispatch order, stage routes and fallbacks, shared budgets, in-VM harness tools and failure codes.
 - [Agent governance](agent-governance.md): durable posture, exact operation approvals, temporal admission, and tracked delegation packets.
 
+[Developer execution plans and progress recovery](developer-execution-workflow.md)
+maps Adrian and Daniel's short persisted plans, evidence-based progress checks and
+checkpoint handoffs for unavailable infrastructure.
+
 [Managed connection service](managed-connection-service-plan.md) plans provider-neutral, plugin-driven
 one-click account connections with a central vault and optional customer-owned credentials. The
 [Google registration checklist](../deployment/google-youtube-connection-setup.md) separates operator
 registration, development testing and production review from ordinary customer consent.
+
+[Managed provider execution](managed-provider-execution.md) maps service-owned read/media relay,
+Core approval and attachment provenance, native account authority and staged adoption boundaries.
 
 [Build provider setup](toolchain-build-setup.md) maps business-scoped toolchain installation, the administrator certification screen, exact provider/image selection and real fixture validation.
 
@@ -82,6 +89,8 @@ Current onboarding: [Personal Assistant and repository business onboarding](feat
 
 ## Feature plans
 
+- [Focused plugin account setup](features/focused-plugin-setup.md) maps the generic native account renderer, declaration/authority boundary, adapter limits and synthetic acceptance coverage.
+
 - [Project names and continuity](features/project-naming.md) - human rename controls, approved agent changes, stable execution and memory identity, audit history and current chat context.
 
 - [Forecast-driven planning](features/forecast-driven-planning.md) - optional external date constraints, elapsed-history completion ranges, intake memory and manager-owned pause/escalation/relay.
@@ -112,6 +121,8 @@ Current onboarding: [Personal Assistant and repository business onboarding](feat
 - [October 19 QwenGames planning stall](./planning-stall-overview-2026-10-19.md) - oversized coverage output, task-budget mismatch, persistent Overview issue cards and proposed resumable planner hardening.
 - [October 17 workspace sync schema recovery](./workspace-sync-schema-recovery-2026-10-17.md) - SDK/gateway request compatibility for source download, checkpoint upload and resource recovery after sprint activation.
 - [October 17 developer validation recovery](./developer-validation-recovery-2026-10-17.md) - quoted validation commands, real assertion exit codes, bounded completion correction and paired developer releases.
+- [October 27 developer gateway recovery](./developer-gateway-checkpoint-recovery-2026-10-27.md) - small-ticket command batches, BOM-free file tools, bounded gateway recovery, paired releases and retained-checkpoint ticket recovery.
+- [Prism Break Sprint 2 readiness](./prism-break-sprint2-readiness-2026-10-27.md) - #54 was never dispatched; truthful decision-gated readiness, durable recovery and unchanged-wake suppression.
 - [Blocked tickets and retry](./blocked-ticket-retry.md) - where blocked sprint cards go, and how moving them back to Ready or pressing Retry restarts them.
 - [Manager project health](./features/producer-project-health.md) - stall detection, bounded diagnostics,
   durable incidents, management escalation and rollout.
@@ -250,3 +261,5 @@ The first full vertical slice is complete when:
 - [Coding workload resources and recovery](coding-workload-resources.md) — resource policy, checkpointed VM replacement, guest memory evidence and rollout acceptance.
 
 - [Video game portfolio leadership](features/video-game-director.md) — Director/Creative Director/Producer ownership, pitch approvals, shared teams and CEO reporting.
+
+[Account import diagnostics](plugin-account-import-diagnostics.md) explains resume acknowledgments, worker attempts, safe failure metadata and upstream visibility limits.

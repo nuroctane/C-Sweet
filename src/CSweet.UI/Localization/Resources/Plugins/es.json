@@ -248,5 +248,17 @@
   "Plugins.Import.BundleInstalled": "Paquete de complemento verificado instalado. Su entorno de ejecución se iniciará cuando esté listo.",
   "Plugins.Import.Error.BundleType": "Elige un paquete de complemento de C-Sweet (.cspb).",
   "Plugins.Import.Error.BundleSize": "El paquete del complemento supera el límite de 512 MB.",
-  "Plugins.Import.Error.Agent": "Los paquetes de agentes van en Agentes instalados. Elige un complemento de servicio o de conector."
+  "Plugins.Import.Error.Agent": "Los paquetes de agentes van en Agentes instalados. Elige un complemento de servicio o de conector.",
+  "Plugins.Installed.CheckForUpdates": "Buscar actualizaciones",
+  "Plugins.Installed.CheckForUpdatesFor": "Buscar actualizaciones de {name}",
+  "Plugins.Installed.UpdateTo": "Actualizar a v{version}",
+  "Plugins.Installed.UpdateReviewVersion": "v{version} disponible — revisar",
+  "Plugins.Installed.UpToDate": "Actualizado",
+  "Plugins.Installed.NoUpdates": "Todos los plugins instalados están actualizados.",
+  "Plugins.Installed.UpdatesAvailable": "{count} actualización(es) de plugins disponible(s).",
+  "Plugins.Installed.UpdateTimedOut": "La actualización preparada no terminó de verificarse a tiempo. Actualice la página e inténtelo de nuevo.",
+  "Plugins.Installed.UpdateVerificationFailed": "La actualización preparada no superó la verificación: {detail}",
+  "Plugins.Installed.Updated": "Actualizado a v{version}.",
+  "Plugins.Installed.UpdatedReconnect": "Actualizado a v{version}. Las claves guardadas y los permisos de los agentes no se transfieren a una revisión nueva: abra Cuentas con clave de API para guardar la clave y volver a autorizar a los agentes.",
+  "Plugins.Installed.ApiKeyAccounts": "Cuentas con clave de API"
 }

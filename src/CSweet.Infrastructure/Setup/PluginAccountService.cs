@@ -22,8 +22,20 @@ public sealed partial class PluginAccountService(CSweetDbContext db, IPluginSecr
     private PluginAccountAccessService Access => new(db);
     private ManagedPluginConnectionOptions ManagedSettings => selections?.Effective(options.Value.Managed) ?? options.Value.Managed;
     private bool DevelopmentPreview=>options.Value.AllowDevelopmentLifecyclePreview && environment?.IsDevelopment()==true;
-    private string[] MissingDeletionStores=>new[]{"external:backups","external:processors","external:memory","external:runtime","external:retained-evidence"}
-        .Except((deletionParticipants ?? []).Where(p=>p.IsConfigured).Select(p=>p.Store),StringComparer.Ordinal).ToArray();
+    private async Task<string[]> MissingDeletionStores(Guid installationId,CancellationToken ct)
+    {
+        // Deployment defaults are not a complete inventory: managed services and future
+        // host-owned adapters can record additional obligations. Do not hide them merely
+        // because they are absent from this host's built-in participant list.
+        var recorded=await (from copy in db.PluginAccountDataCopies.AsNoTracking()
+            join account in db.PluginAccountGroups.AsNoTracking() on copy.AccountGroupId equals account.Id
+            where account.PluginInstallationId==installationId && copy.DeletedAt==null && copy.Store.StartsWith("external:")
+            select copy.Store).Distinct().ToArrayAsync(ct);
+        return new[]{"external:backups","external:processors","external:memory","external:runtime","external:retained-evidence"}
+            .Concat(recorded).Distinct(StringComparer.Ordinal)
+            .Except((deletionParticipants ?? []).Where(p=>p.IsConfigured).Select(p=>p.Store),StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal).ToArray();
+    }
 
     private async Task<(AgentInstallation Installation, PluginManifest Manifest, PluginConnectionDeclaration Connection)> Context(Guid id, CancellationToken ct, bool management = false)
     {
@@ -48,11 +60,13 @@ public sealed partial class PluginAccountService(CSweetDbContext db, IPluginSecr
         var canConnect = installation.IsEnabled && installation.RevisionStatus == PluginRevisionStatus.Active && build == "Built" && !string.IsNullOrWhiteSpace(installation.PackageVersion.PackageDigest);
         string? readiness = canConnect ? null : "build_pending";
         var managedMode = managed?.UsesManaged(declaration.ProviderProfile) == true;
+        string? managedBindingHash = null;
         if (canConnect && managedMode)
         {
             try
             {
                 var availability = await managed!.Availability(installation.PackageVersion.PackageDigest!, ct);
+                managedBindingHash = availability.BindingHash;
                 if (availability.ProfileId != declaration.ProviderProfile) throw new InvalidOperationException("The managed application binding differs from this package.");
             }
             catch (Exception error) when (error is HttpRequestException or InvalidOperationException or System.Security.Cryptography.CryptographicException)
@@ -97,10 +111,14 @@ public sealed partial class PluginAccountService(CSweetDbContext db, IPluginSecr
             var grants = admin ? await db.PluginAccountBusinessGrants.AsNoTracking().Where(x => x.AccountGroupId == group.Id).ToArrayAsync(ct) : [];
             var authorizationIds = authorizations.Select(x => x.Id).ToArray();
             var proofs = await db.PluginAccountResourceAuthorizations.AsNoTracking().Where(x => authorizationIds.Contains(x.ConnectionId)).ToArrayAsync(ct);
+            var recoverable = new HashSet<Guid>();
+            if (managedMode && installation.IsEnabled && build == "Built" && readiness is null or "assigned_accounts_only")
+                foreach (var authorization in authorizations)
+                    if (await CanRecoverUnverifiedManaged(userId, group, authorization, installation, declaration, managedBindingHash, ct)) recoverable.Add(authorization.Id);
             rows.Add(new(group.Id, group.DisplayName, group.State.ToString(), group.Revision, group.IdentityKind == PluginAccountIdentityKind.ProviderSubject,
                 resources, authorizations.Select(c => new PluginManagedAuthorization(c.Id, c.Status.ToString(),
-                    declaration.ScopeSets.Where(s => !s.Scopes.Except(List<string>(c.GrantedScopesJson), StringComparer.Ordinal).Any()).Select(s => s.Id).ToArray(), group.State == PluginAccountState.Connected && installation.IsEnabled && build=="Built" && readiness is null or "assigned_accounts_only")
-                    { ResourceIds = proofs.Where(p => p.ConnectionId == c.Id).Select(p => p.ResourceId).ToArray() }).ToArray(),
+                    declaration.ScopeSets.Where(s => !s.Scopes.Except(List<string>(c.GrantedScopesJson), StringComparer.Ordinal).Any()).Select(s => s.Id).ToArray(), (group.State == PluginAccountState.Connected || recoverable.Contains(c.Id)) && installation.IsEnabled && build=="Built" && readiness is null or "assigned_accounts_only")
+                    { ResourceIds = proofs.Where(p => p.ConnectionId == c.Id).Select(p => p.ResourceId).ToArray(), RequiresFreshConsentRecovery = recoverable.Contains(c.Id) }).ToArray(),
                 grants.Select(g => new PluginBusinessAccountGrantView(g.Id, g.OrganizationId, g.Scope.ToString(), List<Guid>(g.SelectedResourceIdsJson),
                     manifest.Accounts!.Permissions.Where(p => p.Capabilities.All(c => List<string>(g.CapabilitiesJson).Contains(c))).Select(p => p.Id).ToArray(), g.Revision, g.RevokedAt != null)).ToArray()));
         }
@@ -111,7 +129,8 @@ public sealed partial class PluginAccountService(CSweetDbContext db, IPluginSecr
         return new(installationId, manifest.Name, manifest.Version, installation.PackageVersion.PackageDigest ?? "", build, canConnect, readiness,
             manifest.Accounts!, declaration.ScopeSets.Where(s => s.Required || manifest.Accounts!.Permissions.Any(p => p.ScopeSets.Contains(s.Id))).ToArray(), rows, sessions.Select(s => new PluginAccountSetupView(s.Id,
                 s.Status == "AwaitingConsent" && s.ExpiresAt <= DateTimeOffset.UtcNow ? "Expired" : s.Status,
-                List<ConnectorAccountChoice>(s.ObservedResourcesJson).Length, s.FailureCode, s.ExpiresAt)).ToArray(), admin)
+                List<ConnectorAccountChoice>(s.ObservedResourcesJson).Length, s.FailureCode, s.ExpiresAt)
+                { Revision = s.Revision, Import = ImportProgress(s) }).ToArray(), admin)
         { PluginId = manifest.Id, OAuthRedirectUri = redirectUri, ConnectionMode = managedMode ? "Managed" : "CustomerOwned",
           ManagedServiceOrigin = managedMode && ManagedServiceTrust.Identity(ManagedSettings.ServiceOrigin) != "Unconfigured"
               ? ManagedServiceTrust.CanonicalOrigin(ManagedSettings.ServiceOrigin) : null,

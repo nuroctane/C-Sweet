@@ -247,5 +247,17 @@
   "Plugins.Import.BundleInstalled": "bcc598299833",
   "Plugins.Import.Error.BundleType": "26ee20072dae",
   "Plugins.Import.Error.BundleSize": "e596942b19b0",
-  "Plugins.Import.Error.Agent": "c4864a377eab"
+  "Plugins.Import.Error.Agent": "c4864a377eab",
+  "Plugins.Installed.CheckForUpdates": "736b9062b336",
+  "Plugins.Installed.CheckForUpdatesFor": "b3e0df898f55",
+  "Plugins.Installed.UpdateTo": "e248a79033f8",
+  "Plugins.Installed.UpdateReviewVersion": "720f5d67ee1f",
+  "Plugins.Installed.UpToDate": "82fb1d5144a8",
+  "Plugins.Installed.NoUpdates": "1436d6aa3f9d",
+  "Plugins.Installed.UpdatesAvailable": "9d8e23de1965",
+  "Plugins.Installed.UpdateTimedOut": "9daf848dbd4c",
+  "Plugins.Installed.UpdateVerificationFailed": "f9683db284dd",
+  "Plugins.Installed.Updated": "6d83df49f4b2",
+  "Plugins.Installed.UpdatedReconnect": "1515ccfb0032",
+  "Plugins.Installed.ApiKeyAccounts": "33df8190e5b0"
 }

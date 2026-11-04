@@ -248,5 +248,17 @@
   "Plugins.Import.BundleInstalled": "Pacote de plugin verificado instalado. O runtime dele será iniciado quando estiver pronto.",
   "Plugins.Import.Error.BundleType": "Escolha um pacote de plugin do C-Sweet (.cspb).",
   "Plugins.Import.Error.BundleSize": "O pacote do plugin excede o limite de 512 MB.",
-  "Plugins.Import.Error.Agent": "Pacotes de agentes ficam em Agentes instalados. Escolha um plugin de serviço ou de conector."
+  "Plugins.Import.Error.Agent": "Pacotes de agentes ficam em Agentes instalados. Escolha um plugin de serviço ou de conector.",
+  "Plugins.Installed.CheckForUpdates": "Verificar atualizações",
+  "Plugins.Installed.CheckForUpdatesFor": "Verificar atualizações de {name}",
+  "Plugins.Installed.UpdateTo": "Atualizar para v{version}",
+  "Plugins.Installed.UpdateReviewVersion": "v{version} disponível — revisar",
+  "Plugins.Installed.UpToDate": "Atualizado",
+  "Plugins.Installed.NoUpdates": "Todos os plugins instalados estão atualizados.",
+  "Plugins.Installed.UpdatesAvailable": "{count} atualização(ões) de plugin disponível(is).",
+  "Plugins.Installed.UpdateTimedOut": "A atualização preparada não concluiu a verificação a tempo. Atualize a página e tente novamente.",
+  "Plugins.Installed.UpdateVerificationFailed": "A atualização preparada falhou na verificação: {detail}",
+  "Plugins.Installed.Updated": "Atualizado para v{version}.",
+  "Plugins.Installed.UpdatedReconnect": "Atualizado para v{version}. Chaves salvas e permissões de agentes não são transferidas para uma nova revisão: abra Contas com chave de API para salvar a chave e autorizar os agentes novamente.",
+  "Plugins.Installed.ApiKeyAccounts": "Contas com chave de API"
 }

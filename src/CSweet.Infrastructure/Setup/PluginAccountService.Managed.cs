@@ -28,6 +28,12 @@ public sealed partial class PluginAccountService
             : new PluginAccountGroup { Id = Guid.NewGuid(), PluginInstallationId = installation.Id, ProviderProfile = declaration.ProviderProfile,
                 DisplayName = manifest.Accounts.AccountLabel, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow };
         if (group.State is PluginAccountState.Disconnecting or PluginAccountState.Disconnected) throw new InvalidOperationException("Account disconnection must finish first.");
+        if (previous is not null && group.State == PluginAccountState.ConnectionRequired)
+        {
+            if (!await CanRecoverUnverifiedManaged(user, group, previous, installation, declaration, available.BindingHash, ct)) throw new InvalidOperationException("This account is not available for fresh-consent recovery. Review its current status.");
+            var existingSets = declaration.ScopeSets.Where(x => !x.Scopes.Except(List<string>(previous.GrantedScopesJson), StringComparer.Ordinal).Any()).Select(x => x.Id);
+            if (!requested.ToHashSet(StringComparer.Ordinal).SetEquals(existingSets)) throw new ArgumentException("Recover this account with its existing permission sets. Additional access needs a separate review.");
+        }
         if (previous is null) db.PluginAccountGroups.Add(group);
         var connection = new PluginConnection { Id = Guid.NewGuid(), AgentInstallationId = installation.Id, AccountGroupId = group.Id,
             DeclarationId = declaration.Id, ProviderProfile = declaration.ProviderProfile, CredentialProfileHash = available.BindingHash,
@@ -89,8 +95,10 @@ public sealed partial class PluginAccountService
     {
         await Current(session, ct); var context = await ManagedAttempt(session, ct);
         if (context.RemoteConnectionId is not { } connectionId) throw new UnauthorizedAccessException("Managed consent has not completed.");
+        await SaveImportStage(session, "ManagedDiscovery", ct);
         var inventory = await managed!.Discover(connectionId, ct,
             context.ServiceOrigin ?? throw new UnauthorizedAccessException("The connection service origin is unavailable.")); await Current(session, ct);
+        ImportStage(session, "ResponseValidation");
         if (inventory.ConnectionId != connectionId || inventory.Status is not ("AuthorizedPendingDiscovery" or "Ready")) throw new UnauthorizedAccessException("Managed discovery is unavailable.");
         var (_, manifest, _) = await Context(session.PluginInstallationId, ct);
         if (inventory.Resources.Count > manifest.Accounts!.MaximumResources || inventory.Resources.Select(x => x.Id).Distinct(StringComparer.Ordinal).Count() != inventory.Resources.Count)
@@ -101,7 +109,7 @@ public sealed partial class PluginAccountService
         session.VerifiedSubject = inventory.Subject; session.VerifiedName = inventory.Name; session.IdentityAuthority = inventory.IdentityAuthority;
         session.ObservedResourcesJson = JsonSerializer.Serialize(rows, Json); session.PagesImported++; session.Revision++;
         if (inventory.Status == "Ready") await FinishImport(session, rows, ct);
-        else { session.LeaseOwner = null; session.LeaseUntil = null; await db.SaveChangesAsync(ct); }
+        else { FinishImportProgress(session, "Queued"); session.LeaseOwner = null; session.LeaseUntil = null; await db.SaveChangesAsync(ct); }
     }
     private async Task<bool> RetireManaged(PluginAccountSetupSession completed, CancellationToken ct)
     {
@@ -125,7 +133,7 @@ public sealed partial class PluginAccountService
                 else
                 {
                     var receipt = await managed.Supersede(oldRemote, newRemote, ct, prior.ServiceOrigin);
-                    if (receipt.ConnectionId != oldRemote || receipt.Status != "Superseded") return false;
+                    if (receipt.ConnectionId != oldRemote || receipt.Status is not ("Superseded" or "Revoked") || receipt.GrantedScopeSets.Count != 0 || receipt.Revision < 1) return false;
                 }
             }
             else
@@ -147,8 +155,7 @@ public sealed partial class PluginAccountService
     private async Task<bool> RevokeManaged(Guid installation, Guid connection, ManagedAccountAttempt context, CancellationToken ct)
     {
         if (managed is null || context.ServiceOrigin is null) return false;
-        var original = await db.PluginAccountSetupSessions.AsNoTracking().Where(x => x.PluginInstallationId == installation &&
-            x.ConnectionId == connection && !x.IsMaintenance).OrderBy(x => x.CreatedAt).FirstAsync(ct);
+        var original = await ManagedAccountProvenance.Original(db,installation,connection,ct);
         var cancelled = await managed.CancelAttempt(original.Id, ct, context.ServiceOrigin);
         if (cancelled.Status != "Cancelled" || context.RemoteSessionId != Guid.Empty && cancelled.SessionId != context.RemoteSessionId ||
             context.RemoteConnectionId is { } expected && cancelled.ConnectionId != expected) return false;

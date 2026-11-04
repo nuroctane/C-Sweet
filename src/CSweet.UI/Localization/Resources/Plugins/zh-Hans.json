@@ -248,5 +248,17 @@
   "Plugins.Import.BundleInstalled": "已验证的插件软件包已安装。其运行时将在就绪后启动。",
   "Plugins.Import.Error.BundleType": "请选择 C-Sweet 插件软件包（.cspb）。",
   "Plugins.Import.Error.BundleSize": "插件软件包超过 512 MB 的上限。",
-  "Plugins.Import.Error.Agent": "智能体软件包应在“已安装的智能体”中管理。请选择服务或连接器插件。"
+  "Plugins.Import.Error.Agent": "智能体软件包应在“已安装的智能体”中管理。请选择服务或连接器插件。",
+  "Plugins.Installed.CheckForUpdates": "检查更新",
+  "Plugins.Installed.CheckForUpdatesFor": "检查 {name} 的更新",
+  "Plugins.Installed.UpdateTo": "更新到 v{version}",
+  "Plugins.Installed.UpdateReviewVersion": "v{version} 可用 — 审核",
+  "Plugins.Installed.UpToDate": "已是最新",
+  "Plugins.Installed.NoUpdates": "所有已安装的插件均为最新版本。",
+  "Plugins.Installed.UpdatesAvailable": "有 {count} 个插件更新可用。",
+  "Plugins.Installed.UpdateTimedOut": "暂存的更新未能及时完成验证。请刷新后重试。",
+  "Plugins.Installed.UpdateVerificationFailed": "暂存的更新未通过验证：{detail}",
+  "Plugins.Installed.Updated": "已更新到 v{version}。",
+  "Plugins.Installed.UpdatedReconnect": "已更新到 v{version}。已保存的密钥和代理授权不会转移到新修订版：请打开“API 密钥账户”重新保存密钥并再次授权代理。",
+  "Plugins.Installed.ApiKeyAccounts": "API 密钥账户"
 }
