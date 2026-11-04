@@ -27,7 +27,7 @@ public sealed class AppearanceState(IJSRuntime js)
             var stored = await js.InvokeAsync<string?>("localStorage.getItem", StorageKey);
             if (revision == _revision)
             {
-                Select(AppearanceThemes.Resolve(stored));
+                Select(AppearanceThemes.ResolveStored(stored));
                 await js.InvokeVoidAsync("csweetAppearance.apply", Theme);
                 Changed?.Invoke();
             }

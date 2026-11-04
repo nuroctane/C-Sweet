@@ -74,7 +74,23 @@ public static class AppearanceThemes
         "day" or "gold" => "csweet-daylight",
         _ => id ?? DefaultId
     };
-    public static AppearanceTheme? Find(string? id) => All.FirstOrDefault(t => t.Id == Normalize(id));
+    public static AppearanceTheme? Find(string? id)
+    {
+        var normalized = Normalize(id);
+        return All.FirstOrDefault(t => t.Id == normalized);
+    }
+
+    public static AppearanceTheme ResolveStored(string? id)
+    {
+        if (Find(id) is { } current) return current;
+        // Older catalog IDs put a collection prefix before the palette ID.
+        if (id is null) return Default;
+        var separator = id.IndexOf('-');
+        if (separator <= 0) return Default;
+        var palette = id[(separator + 1)..];
+        if (palette == "gold") palette = "signature-gold";
+        return All.FirstOrDefault(t => t.Id == palette) ?? Default;
+    }
     public static AppearanceTheme Resolve(string? id) => Find(id) ?? Default;
 
     private static IReadOnlyList<AppearanceTheme> Load()

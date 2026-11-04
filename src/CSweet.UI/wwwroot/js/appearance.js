@@ -11,7 +11,15 @@ window.csweetAppearance = {
     }
 };
 try {
-    window.csweetAppearance.apply(localStorage.getItem("csweet.appearance"));
+    const stored = localStorage.getItem("csweet.appearance");
+    const separator = stored?.indexOf("-") ?? -1;
+    // Older saved IDs include a collection prefix before the palette ID.
+    let theme = stored;
+    if (separator > 0 && !window.csweetThemeIds.has(stored)) {
+        const palette = stored.slice(separator + 1);
+        theme = palette === "gold" ? "signature-gold" : palette;
+    }
+    window.csweetAppearance.apply(theme);
 } catch {
     window.csweetAppearance.apply("night-glass");
 }

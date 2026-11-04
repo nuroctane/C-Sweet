@@ -78,6 +78,8 @@ public sealed class AppearanceStateTests
     [InlineData("aurora", "night-glass")]
     [InlineData("day", "csweet-daylight")]
     [InlineData("night", "night-glass")]
+    [InlineData("retired-off-white", "off-white")]
+    [InlineData("retired-gold", "signature-gold")]
     public async Task StoredPreferenceMigratesAndAppliesToDocument(string? stored, string expected)
     {
         var storage = new Storage { Value = stored };
