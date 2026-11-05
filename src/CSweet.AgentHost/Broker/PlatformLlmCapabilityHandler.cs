@@ -200,7 +200,7 @@ public sealed partial class PlatformLlmCapabilityHandler
 
         // The authenticated installation's effective configuration owns all agent token budgets.
         // Ignore legacy per-call caps and provider-profile defaults: neither may silently reduce
-        // the user's saved budget. Unsupported model budgets surface as provider errors.
+        // the user's saved ceiling. The provider adapter can fit an explicitly rejected output limit.
         int effectiveMaxOutputTokens = 0;
         int effectiveContextTokens = AgentTokenBudget.DefaultContextTokens;
         string? budgetError = null;
