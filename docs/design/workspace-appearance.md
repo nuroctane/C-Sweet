@@ -4,7 +4,7 @@
 
 ## Sources and synchronization
 
-`Services/AppearanceThemes.json` is the source of truth. Edit it, then run `python scripts/Sync-AppearanceThemes.py` to validate text contrast (primary and muted text 4.5:1, faint text 3:1 on page, panel and elevated surfaces) and regenerate the stylesheet and ID allowlist. Run with `--check` to detect drift. Generated outputs are committed.
+`Services/AppearanceThemes.json` is the source of truth. Edit it, then run `python scripts/Sync-AppearanceThemes.py` to validate text contrast (primary, muted, warm, danger, ok and accent-2 at 4.5:1, faint text and accent-3 at 3:1, on page, panel and elevated surfaces) and regenerate the stylesheet and ID allowlist. Run with `--check` to detect drift. Generated outputs are committed.
 
 - `Services/AppearanceThemes.json`: embedded catalog with every original token and preset ID.
 - `wwwroot/css/presets.css`: resolved preset roles.

@@ -2,7 +2,7 @@
 
 ## Posture and operation approval
 
-`DatabaseAgentPostureStore` persists posture on `AgentInstallation`. API and AgentHost use scoped readers over the same database. A missing assignment means Manual; invalid stored values refuse execution. `AgentGovernanceAccess.CanManageAsync` permits the account owner for user installations, a business Owner, a Manager over the direct report, or a deployment administrator. Archived memberships and employees confer no authority.
+`DatabaseAgentPostureStore` persists posture on `AgentInstallation`. API and AgentHost use scoped readers over the same database. A missing assignment means Manual; invalid stored values refuse execution. Migration `PreserveExistingAgentAutonomy` pins installations that existed before posture governance to Auto, so upgrading does not start queueing approvals for every write; new installations keep the Manual default. `AgentInstallationService.UpdateAsync` carries the chosen posture to each upgraded revision. `AgentGovernanceAccess.CanManageAsync` permits the account owner for user installations, a business Owner, a Manager over the direct report, or a deployment administrator. Archived memberships and employees confer no authority.
 
 `AgentPostureEndpoints` accepts named Plan, Manual and Auto values through the interactive authentication scheme. `AgentGovernancePanel` exposes that control in the employee Configuration tab.
 
@@ -32,7 +32,7 @@ Decisions require authority over the recipient and call the canonical `RespondAs
 
 `CodemodeCapabilityHandler.CopyValue` enforces cancellation, depth, node and cumulative byte budgets during evaluation. Nested capability responses are bounded before parsing. Codemode remains disabled by default.
 
-`Sync-AppearanceThemes.py` checks secondary text against page, panel and raised surfaces. All 43 themes retain Night Glass as the default.
+`Sync-AppearanceThemes.py` checks text and semantic colours against page, panel and raised surfaces. All 43 themes retain Night Glass as the default.
 
 Apply migration `PersistAgentGovernance` before running the updated API and AgentHost. The migration adds posture fields, operation approvals and the tracked packet reference. No installed agent payloads are patched by this change.
 
