@@ -91,13 +91,21 @@
             _run = result;
             _selected ??= result.Nodes.FirstOrDefault()?.Id;
         }
-        catch (HttpRequestException) { if (!_disposed && generation == _generation) { _run = null; _error = L["RunInspector.Unavailable"]; } }
+        catch (HttpRequestException)
+        {
+            if (_disposed || generation != _generation) return;
+            // A failed first load has nothing to keep; a failed newer read keeps the evidence already shown.
+            if (!newer || previous is null) _run = null;
+            _error = L["RunInspector.Unavailable"];
+        }
         finally { if (generation == _generation) _loading = false; }
     }
     private void Changed(AppRealtimeEventEnvelope message)
     {
         if (message.OrganizationId == OrganizationId && message.EventType == AppRealtimeEvents.CurrentActivityChanged) Reconnected();
     }
-    private void Reconnected() { if (!_disposed) _ = InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); }); }
+    // The event is organization-wide and only a wake hint: append newer evidence instead of
+    // re-reading from the start, which would drop pages loaded with "Load newer".
+    private void Reconnected() { if (!_disposed) _ = InvokeAsync(async () => { await (_run is null ? LoadAsync() : LoadNewerAsync()); StateHasChanged(); }); }
     public void Dispose() { _disposed = true; _generation++; Realtime.EventReceived -= Changed; Realtime.Reconnected -= Reconnected; }
 }

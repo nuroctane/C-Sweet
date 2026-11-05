@@ -101,7 +101,8 @@
     private void Pin(Guid id, bool value) { if (value) _skills.Add(id); else _skills.Remove(id); }
     private async Task LoadAsync()
     {
-        _busy = true; _error = null; _changedElsewhere = false;
+        // A reload starts from a clean slate; Mutate sets its notice only after a successful reload.
+        _busy = true; _error = null; _notice = null; _changedElsewhere = false;
         try {
             _workspace = await Http.GetFromJsonAsync<WorkspaceResponse>($"api/agents/{InstallationId:D}/harness");
             if (_workspace is { } w) {
@@ -122,7 +123,7 @@
     private async Task SaveAsync()
     {
         if (_workspace is null) return;
-        if (_routes.Any(x => x.Provider == Guid.Empty || x.Fallbacks.Any(f => f.Provider == Guid.Empty))) { _error = L["HarnessWorkspace.SelectAProviderForEvery"]; return; }
+        if (_routes.Any(x => x.Provider == Guid.Empty || x.Fallbacks.Any(f => f.Provider == Guid.Empty))) { _notice = null; _error = L["HarnessWorkspace.SelectAProviderForEvery"]; return; }
         var policy = new HarnessPolicy(_workspace.Policy.Revision, _compact, _tokens, _cost,
             _routes.Select(x => new HarnessRoute(x.Stage.Trim(), x.Provider, x.Model.Trim(), x.Input, x.Output,
                 x.Fallbacks.Count == 0 ? null : x.Fallbacks.Select(f => new HarnessRouteTarget(f.Provider, f.Model.Trim(), f.Input, f.Output)).ToArray())).ToArray(),
@@ -134,7 +135,7 @@
     private async Task Mutate(Func<Task<HttpResponseMessage>> action, string notice)
     {
         _busy = true; _error = null; _notice = null;
-        try { using var response = await action(); if (!response.IsSuccessStatusCode) { var failure = response.Content.Headers.ContentType?.MediaType == "application/json" ? await response.Content.ReadFromJsonAsync<Dictionary<string, string>>() : null; _error = failure?.GetValueOrDefault("error") ?? L["HarnessWorkspace.ChangeNotSaved"]; return; } await LoadAsync(); _notice = notice; }
+        try { using var response = await action(); if (!response.IsSuccessStatusCode) { var failure = response.Content.Headers.ContentType?.MediaType == "application/json" ? await response.Content.ReadFromJsonAsync<Dictionary<string, string>>() : null; _error = failure?.GetValueOrDefault("error") ?? L["HarnessWorkspace.ChangeNotSaved"]; return; } await LoadAsync(); if (_error is null) _notice = notice; }
         catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException) { _error = L["HarnessWorkspace.TheChangeCouldNotBe"]; }
         finally { _busy = false; }
     }
