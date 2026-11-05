@@ -294,6 +294,7 @@ public sealed partial class CSweetDbContext : IdentityDbContext<ApplicationUser,
         CaptureApplicationNotificationEvents();
         CaptureArtifactEvents();
         CaptureApprovalEvents();
+        CaptureBusinessSuggestionsAsync().GetAwaiter().GetResult();
         CaptureHiringRecommendationEvents();
         CaptureProjectResourceEvents();
         CaptureComputeEvents();
@@ -327,6 +328,7 @@ public sealed partial class CSweetDbContext : IdentityDbContext<ApplicationUser,
         CaptureApplicationNotificationEvents();
         CaptureArtifactEvents();
         CaptureApprovalEvents();
+        await CaptureBusinessSuggestionsAsync(cancellationToken);
         CaptureHiringRecommendationEvents();
         CaptureProjectResourceEvents();
         CaptureComputeEvents();
@@ -843,6 +845,7 @@ public sealed partial class CSweetDbContext : IdentityDbContext<ApplicationUser,
         ConfigureHarness(modelBuilder);
         ConfigureResourceCleanup(modelBuilder);
         ConfigurePersonalAssistant(modelBuilder);
+        ConfigureBusinessImport(modelBuilder);
         ConfigurePluginAccounts(modelBuilder);
         modelBuilder.Entity<ChiefHiringPolicy>().HasIndex(x => new { x.OrganizationId, x.InstallationId }).IsUnique();
         modelBuilder.Entity<ChiefHiringPolicy>().Property(x => x.Revision).IsConcurrencyToken();
