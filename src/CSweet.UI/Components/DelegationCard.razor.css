@@ -191,9 +191,11 @@
     transition: background var(--d-fast) var(--ease), border-color var(--d-fast) var(--ease);
 }
 
-.delegation-button:hover:not(:disabled) {
-    background: var(--hover);
-    border-color: var(--ink);
+@media (hover: hover) and (pointer: fine) {
+    .delegation-button:hover:not(:disabled) {
+        background: var(--hover);
+        border-color: var(--ink);
+    }
 }
 
 .delegation-button:focus-visible {
@@ -215,15 +217,17 @@
     color: var(--action-ink);
 }
 
-.delegation-button-accept:hover:not(:disabled),
-.delegation-button-complete:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--action) 88%, var(--ink));
-    border-color: color-mix(in srgb, var(--action) 88%, var(--ink));
-}
+@media (hover: hover) and (pointer: fine) {
+    .delegation-button-accept:hover:not(:disabled),
+    .delegation-button-complete:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--action) 88%, var(--ink));
+        border-color: color-mix(in srgb, var(--action) 88%, var(--ink));
+    }
 
-.delegation-button-decline:hover:not(:disabled) {
-    border-color: var(--danger);
-    color: var(--danger);
+    .delegation-button-decline:hover:not(:disabled) {
+        border-color: var(--danger);
+        color: var(--danger);
+    }
 }
 
 .delegation-message {

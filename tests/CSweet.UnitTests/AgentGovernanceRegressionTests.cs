@@ -104,6 +104,24 @@ public sealed class AgentGovernanceRegressionTests
     }
 
     [Fact]
+    public async Task ProviderRoutedCapabilityNeedsNoPlatformHandlerButStillPassesTheGate()
+    {
+        await using var f = await Fixture.CreateAsync();
+        var request = new RequestCapability { RequestId = "routed", Capability = "work.item.create.v1", Payload = JsonPayload.FromUtf8("{}") };
+        var auto = new PlatformCapabilityDispatcher([], new AutoPostureReader(), new UnusedApprovalService(), new PermissiveTemporalPolicy());
+        // Remote MCP, connector and agent-provided tools have no platform handler; the gateway routes them.
+        Assert.True((await auto.PreflightAsync(f.Session, request, default)).IsTerminal);
+        Assert.False((await auto.PreflightAsync(f.Session, request, default, new CapabilityRoute(CapabilityRiskClass.Read))).IsTerminal);
+
+        // Routing never bypasses posture: Plan still refuses a routed write.
+        var postures = new AgentPostureService(new DatabaseAgentPostureStore(f.Db), new PermissivePostureAuthorization(), TimeProvider.System);
+        await postures.SetAsync(f.Installation, AgentPosture.Plan, f.Owner);
+        var plan = new PlatformCapabilityDispatcher([], postures, f.Approvals, new PermissiveTemporalPolicy());
+        Assert.True((await plan.PreflightAsync(f.Session, request, default, new CapabilityRoute(CapabilityRiskClass.Write))).IsTerminal);
+        Assert.False((await plan.PreflightAsync(f.Session, request, default, new CapabilityRoute(CapabilityRiskClass.Read))).IsTerminal);
+    }
+
+    [Fact]
     public async Task PolicyDeferralKeepsApprovalRetryableWithoutExecuting()
     {
         await using var f = await Fixture.CreateAsync();

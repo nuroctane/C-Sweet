@@ -179,9 +179,11 @@
     color: var(--ink);
 }
 
+@media (hover: hover) and (pointer: fine) {
     .mud-input.mud-input-outlined.mud-input-outlined:hover {
         border-color: var(--edge-strong);
     }
+}
 
 .mud-input-control.mud-input-control .mud-input-label {
     color: var(--muted);

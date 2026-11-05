@@ -13,12 +13,14 @@ public interface IPlatformCapabilityDispatcher
     /// <summary>
     /// Decides deny / queue / allow for one capability without running its handler. Every entry point
     /// that can execute a capability must call this first, including paths that route to a provider
-    /// outside the handler pipeline.
+    /// outside the handler pipeline. Such a path passes <paramref name="route"/>: no platform handler
+    /// is required, and the route's risk class replaces the catalog classification.
     /// </summary>
     Task<CapabilityPreflight> PreflightAsync(
         AgentSession session,
         RequestCapability request,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        CapabilityRoute? route = null);
 
     /// <summary>Runs an already-admitted capability and settles its approval receipt.</summary>
     IAsyncEnumerable<CapabilityResult> ExecuteAsync(
@@ -41,6 +43,12 @@ public interface IPlatformCapabilityDispatcher
         RequestCapability request,
         CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// A capability that executes outside the platform handler pipeline (a remote MCP server, a
+/// connector or another agent installation), with the risk class the gate must apply to it.
+/// </summary>
+public sealed record CapabilityRoute(CapabilityRiskClass Risk);
 
 /// <summary>
 /// The outcome of the admission gate. <see cref="Terminal"/> is what the caller must return;
@@ -83,7 +91,8 @@ public sealed class PlatformCapabilityDispatcher(
     public async Task<CapabilityPreflight> PreflightAsync(
         AgentSession session,
         RequestCapability request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        CapabilityRoute? route = null)
     {
         if (setupPolicy is not null && !McpToolCatalog.SelfReadCapabilities.Contains(request.Capability))
         {
@@ -114,10 +123,11 @@ public sealed class PlatformCapabilityDispatcher(
                 $"Agent '{session.AgentId}' may not request '{request.Capability}'."));
 
         // Resolved before the gate so an unexecutable capability never creates an approval row.
-        if (!_handlers.Any(candidate => candidate.CanHandle(request.Capability)))
+        // A routed capability is executed by its provider, so it needs no platform handler.
+        if (route is null && !_handlers.Any(candidate => candidate.CanHandle(request.Capability)))
             return CapabilityPreflight.Refuse(Failure(request.RequestId, $"No platform handler provides '{request.Capability}'."));
 
-        var risk = CapabilityRiskCatalog.Classify(request.Capability);
+        var risk = route?.Risk ?? CapabilityRiskCatalog.Classify(request.Capability);
         if (!Guid.TryParse(session.InstallationId, out var installation))
             return CapabilityPreflight.Refuse(Failure(request.RequestId, "The installation identity is invalid."));
 

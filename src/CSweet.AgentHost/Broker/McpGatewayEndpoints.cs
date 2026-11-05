@@ -352,12 +352,20 @@ public static class McpGatewayEndpoints
             Actor: RuntimeAuditIdentity.Actor(session), ContentType: "application/json", Payload: request.Payload.Span.ToArray()), cancellationToken);
         CapabilityAdmission? claimed = null;
         var routed = false;
+        // Once provider work is queued, a lost wait no longer proves the operation failed.
+        var providerWorkQueued = false;
         try
         {
         var inputFailure = ValidateToolInput(request.RequestId, arguments, tool.InputSchema);
         // The admission gate runs before routing: posture, approval and temporal policy apply to every
         // path that can execute a capability, not only the ones that reach the handler pipeline.
-        var preflight = inputFailure is null ? await dispatcher.PreflightAsync(session, request, cancellationToken) : null;
+        // Provider-bound tools run outside it: remote MCP and connector tools are listed only for
+        // read operations. Other provider tools are at least Write: a package chooses its own
+        // capability names, so naming one after a platform read must not make it a read.
+        var route = tool.ProviderInstallationId is null ? null : new CapabilityRoute(
+            tool.ExecutionPolicy == McpToolExecutionPolicy.ReadOnly ? CapabilityRiskClass.Read
+                : (CapabilityRiskClass)Math.Max((int)CapabilityRiskClass.Write, (int)CapabilityRiskCatalog.Classify(tool.Capability)));
+        var preflight = inputFailure is null ? await dispatcher.PreflightAsync(session, request, cancellationToken, route) : null;
         claimed = preflight?.Admission;
         CapabilityResult? terminal;
         if (inputFailure is not null)
@@ -406,6 +414,7 @@ public static class McpGatewayEndpoints
                 sourceType: "AgentInstallation",
                 sourceId: session.InstallationId,
                 cancellationToken: cancellationToken);
+            providerWorkQueued = true;
             try
             {
                 var providerValue = await inbox.WaitForResultAsync<JsonElement>(
@@ -491,8 +500,10 @@ public static class McpGatewayEndpoints
         }
         catch (Exception error)
         {
-            // A claim taken before a provider call failed must not stay Executing.
-            if (routed && claimed is { } abandoned)
+            // A claim taken before a provider call failed must not stay Executing. Once the work
+            // was queued its outcome is unknown: the claim stays Executing for reconciliation
+            // instead of recording a failure the provider may contradict.
+            if (routed && !providerWorkQueued && claimed is { } abandoned)
             {
                 try
                 {

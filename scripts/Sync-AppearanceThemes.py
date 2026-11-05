@@ -27,7 +27,8 @@ def validate(themes):
     assert ids[0]=="night-glass", "Night Glass must remain the default (first) theme"
     for theme in themes:
         t=theme["tokens"]
-        for token,target in (("ink",4.5),("muted",4.5),("faint",3.0)):
+        # warm/mint, danger, ok and accent-2 also colour text (links, errors, status); accent-3 only marks UI.
+        for token,target in (("ink",4.5),("muted",4.5),("faint",3.0),("warm",4.5),("danger",4.5),("ok",4.5),("accent-2",4.5),("accent-3",3.0)):
             for surface in ("paper","surface","elevated"):
                 ratio=contrast(t[token],t[surface])
                 assert ratio>=target, f"{theme['id']}: {token} on {surface} is {ratio:.2f}:1 (needs {target}:1)"

@@ -4,7 +4,7 @@
 .ot {
     position: fixed;
     bottom: var(--s-6);
-    right: var(--s-6);
+    inset-inline-end: var(--s-6);
     z-index: 1200;
     display: grid;
     width: min(26rem, calc(100vw - var(--s-8)));
@@ -39,8 +39,10 @@
     cursor: pointer;
 }
 
-.ot-toggle:hover {
-    background: var(--hover);
+@media (hover: hover) and (pointer: fine) {
+    .ot-toggle:hover {
+        background: var(--hover);
+    }
 }
 
 .ot-toggle:active {
@@ -191,11 +193,6 @@
     white-space: nowrap;
 }
 
-.ot-elapsed-prefix {
-    margin-inline-end: var(--s-1);
-    color: var(--faint);
-}
-
 .ot-detail {
     margin: 0;
     color: var(--muted);
@@ -268,6 +265,10 @@
     transition: transform var(--d-base) var(--ease);
 }
 
+.ot-progress-fill:dir(rtl) {
+    transform-origin: right center;
+}
+
 .ot-item[data-state="succeeded"] .ot-progress-fill {
     background: var(--mint);
 }
@@ -285,7 +286,7 @@
 @media (max-width: 600px) {
     .ot {
         bottom: var(--s-4);
-        right: var(--s-4);
+        inset-inline-end: var(--s-4);
         width: calc(100vw - var(--s-8));
     }
 

@@ -6,6 +6,7 @@ using CSweet.Infrastructure.Persistence;
 using CSweet.Infrastructure.Setup;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
@@ -74,6 +75,42 @@ public sealed class AgentGovernancePostgresTests
             await db.Database.EnsureDeletedAsync();
         }
     }
+    [GovernancePostgresFact]
+    public async Task UpgradePinsUntouchedInstallationsToAutoAndKeepsChosenPostures()
+    {
+        var connection = new NpgsqlConnectionStringBuilder(Environment.GetEnvironmentVariable("CSWEET_DELEGATION_TEST_POSTGRES"));
+        Assert.Contains(connection.Host, new[] { "localhost", "127.0.0.1", "::1" });
+        connection.Database = "governance_test_" + Guid.NewGuid().ToString("N");
+        connection.Pooling = false;
+        var options = new DbContextOptionsBuilder<CSweetDbContext>().UseNpgsql(connection.ConnectionString).Options;
+        await using var db = new CSweetDbContext(options);
+        try
+        {
+            var migrator = db.GetInfrastructure().GetRequiredService<Microsoft.EntityFrameworkCore.Migrations.IMigrator>();
+            await migrator.MigrateAsync("20261103231252_AddCompatiblePluginAccountUpgrades");
+            await using var fixture = await TrackedDelegationTests.Fixture.Create(db);
+            var rows = await db.AgentInstallations.ToListAsync();
+            Assert.True(rows.Count >= 2);
+            var chosen = rows[0];
+            chosen.Posture = "Plan"; chosen.PostureChangedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+
+            await migrator.MigrateAsync();
+
+            await using var after = new CSweetDbContext(options);
+            var postures = await after.AgentInstallations.ToDictionaryAsync(x => x.Id, x => x.Posture);
+            Assert.Equal("Plan", postures[chosen.Id]);
+            Assert.All(rows.Skip(1), x => Assert.Equal("Auto", postures[x.Id]));
+            var store = new DatabaseAgentPostureStore(after);
+            Assert.Equal(AgentPosture.Auto, (await store.FindAsync(rows[1].Id))!.Posture);
+        }
+        finally
+        {
+            Assert.StartsWith("governance_test_", connection.Database);
+            await db.Database.EnsureDeletedAsync();
+        }
+    }
+
     private sealed class GovernancePostgresFactAttribute : FactAttribute
     {
         public GovernancePostgresFactAttribute()

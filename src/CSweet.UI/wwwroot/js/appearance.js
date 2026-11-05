@@ -1,7 +1,7 @@
 // Both layouts and portalled menus use the same document-level appearance.
 window.csweetAppearance = {
     apply(theme) {
-        const aliases = { night: "night-glass", aurora: "night-glass", day: "csweet-daylight", gold: "csweet-daylight" };
+        const aliases = { night: "night-glass", day: "csweet-daylight", aurora: "csweet-daylight", gold: "signature-gold" };
         const id = aliases[theme] || theme;
         const applied = window.csweetThemeIds.has(id) ? id : "night-glass";
         document.documentElement.dataset.appearance = applied;

@@ -86,9 +86,11 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--posture-accent) 24%, transparent);
 }
 
-.agent-posture-option:hover:not(:disabled):not(.is-selected) {
-    background: var(--hover);
-    color: var(--ink);
+@media (hover: hover) and (pointer: fine) {
+    .agent-posture-option:hover:not(:disabled):not(.is-selected) {
+        background: var(--hover);
+        color: var(--ink);
+    }
 }
 
 .agent-posture-option:focus-visible {

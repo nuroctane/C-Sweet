@@ -177,7 +177,12 @@ public sealed partial class PlatformLlmCapabilityHandler
         catch (InvalidOperationException error) { harnessError = error.Message; }
         if (harnessError is not null) { yield return Failure(request.RequestId, harnessError, failureCode: "harness.policy_invalid"); yield break; }
         var routeAttempt = harness?.RouteAttempt ?? 0;
-        var providerId = harness?.Route?.ProviderId ?? input.ProviderProfileId;
+        // A benchmark variant names its own provider and model; a harness route must not replace them.
+        var benchmarkModel = Guid.TryParse(session.InstallationId, out var benchmarkInstallation)
+            ? await CSweet.Infrastructure.Analytics.BenchmarkModelPolicy.ResolveAsync(_dbContext, benchmarkInstallation, session.BusinessId, requestToken)
+            : null;
+        var route = benchmarkModel is null ? harness?.Route : null;
+        var providerId = route?.ProviderId ?? input.ProviderProfileId;
         var profile = await _dbContext.LlmProviderProfiles
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == providerId && x.IsEnabled, requestToken);
@@ -221,7 +226,7 @@ public sealed partial class PlatformLlmCapabilityHandler
         }
 
         if (trustedStage == "Judgment" && harness is not null) effectiveMaxOutputTokens = Math.Min(effectiveMaxOutputTokens, harness.Policy.JudgmentOutputTokens);
-        var selectedModel = harness?.Route?.Model ?? (string.IsNullOrWhiteSpace(input.Model)
+        var selectedModel = route?.Model ?? (string.IsNullOrWhiteSpace(input.Model)
             ? profile.DefaultChatModel
             : input.Model.Trim());
         if (string.IsNullOrWhiteSpace(selectedModel))
@@ -261,8 +266,6 @@ public sealed partial class PlatformLlmCapabilityHandler
             yield return Failure(request.RequestId, "The agent organization identity is unavailable.");
             yield break;
         }
-        var benchmarkModel = await CSweet.Infrastructure.Analytics.BenchmarkModelPolicy.ResolveAsync(
-            _dbContext, installationId, session.BusinessId, requestToken);
         // A benchmark variant measures one provider/model; substituting a fallback would corrupt the comparison.
         cursor.BenchmarkPinned |= benchmarkModel is not null;
         if (benchmarkModel is not null && (benchmarkModel.ProviderProfileId != providerId ||

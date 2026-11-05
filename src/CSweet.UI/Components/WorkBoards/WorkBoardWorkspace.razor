@@ -2,6 +2,7 @@
 @using CSweet.Contracts.WorkManagement
 @using Present = CSweet.UI.Components.WorkBoards.WorkBoardWorkspacePresentation
 @using Wire = CSweet.WorkManagement.Contracts
+@inject CSweet.UI.Localization.AppCulture Culture
 @implements IDisposable
 @inject HttpClient Http
 @inject IAppLocalizer L
@@ -367,6 +368,8 @@
     private async Task MoveByKeyAsync(WorkBoardItemResponse item, KeyboardEventArgs args)
     {
         var step = args.Key switch { "ArrowLeft" => -1, "ArrowRight" => 1, _ => 0 };
+        // Columns run right to left in RTL cultures, so the arrows follow what is on screen.
+        if (Culture.IsRightToLeft) step = -step;
         if (step == 0 || Busy) return;
         var columns = VisibleColumns.ToList();
         var index = columns.FindIndex(x => x.Id == item.ColumnId);

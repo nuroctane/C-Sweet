@@ -70,8 +70,10 @@ public static class AppearanceThemes
     public static AppearanceTheme Default => All[0];
     public static string Normalize(string? id) => id switch
     {
-        "night" or "aurora" => DefaultId,
-        "day" or "gold" => "csweet-daylight",
+        // Upstream's two original themes keep their scheme: Aurora Light was light, Black & Gold dark.
+        "night" => DefaultId,
+        "day" or "aurora" => "csweet-daylight",
+        "gold" => "signature-gold",
         _ => id ?? DefaultId
     };
     public static AppearanceTheme? Find(string? id)

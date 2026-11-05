@@ -560,7 +560,9 @@ public sealed class McpToolCatalog(
                 declaration.Description,
                 declaration.InputSchema,
                 declaration.OutputSchema,
-                manifest?.Kind == "remote-mcp" ? McpToolExecutionPolicy.ReadOnly : McpToolExecutionPolicy.AdvisoryWrite,
+                // Connector tools reach this point only for read operations (filtered above).
+                manifest?.Kind == "remote-mcp" || binding.ProviderInstallation!.PackageVersion!.PluginKind == PluginKind.Connector
+                    ? McpToolExecutionPolicy.ReadOnly : McpToolExecutionPolicy.AdvisoryWrite,
                 ModelVisible: requirements.TryGetValue(binding.Capability, out var requesterRequirement) &&
                               requesterRequirement.ModelVisible,
                 ProviderInstallationId: binding.ProviderInstallationId,
