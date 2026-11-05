@@ -81,9 +81,19 @@ public static class HarnessRuntime
     {
         var current = await HarnessWorkspaceService.ReadPolicyAsync(db, installation, token);
         if (current.Revision != expected.Policy.Revision) throw new HarnessPolicyChangedException("The harness policy changed before dispatch. Retry with current policy.");
+        var business = await db.AgentInstallations.Where(x => x.Id == installation).Select(x => x.BusinessId).SingleAsync(token);
         var ids = expected.Skills.Select(x => x.Id).ToArray();
-        if (await db.BusinessSkillRevisions.AsNoTracking().CountAsync(x => ids.Contains(x.Id) && x.Enabled, token) != ids.Length)
+        var skills = await db.BusinessSkillRevisions.AsNoTracking()
+            .Where(x => ids.Contains(x.Id) && x.BusinessId == business && x.Enabled).ToListAsync(token);
+        if (skills.Count != ids.Length)
             throw new HarnessPolicyChangedException("An assigned skill was disabled before dispatch.");
+        // Re-check grants at dispatch: a capability revoked while the request waited must stop it here.
+        var grant = await db.AgentInstallationGrants.AsNoTracking().Where(x => x.AgentInstallationId == installation)
+            .Select(x => x.RequiredCapabilitiesJson).SingleOrDefaultAsync(token);
+        var granted = JsonSerializer.Deserialize<string[]>(grant ?? "[]") ?? [];
+        foreach (var skill in skills)
+            if ((JsonSerializer.Deserialize<string[]>(skill.RequiredCapabilitiesJson) ?? []).Except(granted, StringComparer.Ordinal).Any())
+                throw new HarnessPolicyChangedException("An assigned skill requires a capability which is no longer approved.");
     }
 
     /// <summary>The caller's own effective route and remaining shared budget. Never exposes other installations' policy.</summary>

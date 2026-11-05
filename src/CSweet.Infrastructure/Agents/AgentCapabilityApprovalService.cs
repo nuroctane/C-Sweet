@@ -101,10 +101,29 @@ public sealed class AgentCapabilityApprovalService(CSweetDbContext db, TimeProvi
             }
         }
         var rows = await query.OrderBy(x => x.Status == "Pending" ? 0 : 1).ThenByDescending(x => x.CreatedAt).Take(100).ToListAsync(token);
-        var allowed = new List<CapabilityApprovalResponse>();
-        foreach (var row in rows)
-            if (await AgentGovernanceAccess.CanManageAsync(db, user, row.AgentInstallationId, administrator, token)) allowed.Add(Map(row));
-        return allowed;
+        // The predicate above is the authorization filter, so paging after a second in-memory filter
+        // no longer returns fewer rows than the caller is entitled to see.
+        return rows.Select(Map).ToArray();
+    }
+
+    public async Task<CapabilityApprovalResponse> AbandonAsync(Guid organization, Guid approval, Guid user, bool administrator,
+        CancellationToken token = default)
+    {
+        await using var transaction = await GovernanceTransaction.OpenAsync(db, approval.ToString("D"), token);
+        var row = await db.AgentCapabilityApprovals.SingleOrDefaultAsync(x => x.Id == approval && x.OrganizationId == organization, token)
+            ?? throw new KeyNotFoundException("Approval not found.");
+        await RefreshAsync(row, token);
+        if (!await AgentGovernanceAccess.CanManageAsync(db, user, row.AgentInstallationId, administrator, token))
+            throw new UnauthorizedAccessException("You may not abandon this agent's approval.");
+        if (row.Status != "Executing")
+            throw new InvalidOperationException("Only an unconfirmed execution can be abandoned.");
+        row.Status = "Failed";
+        row.ResultsJson = null;
+        row.DecidedByApplicationUserId = user;
+        row.UpdatedAt = clock.GetUtcNow(); row.Revision++;
+        await GovernanceEvents.EnqueueAsync(db, organization, row.AgentInstallationId, row.Id, row.Status, true, token, user);
+        await db.SaveChangesAsync(token); await transaction.CommitAsync(token);
+        return Map(row);
     }
 
     public async Task<CapabilityApprovalResponse> DecideAsync(Guid organization, Guid approval, Guid user, bool administrator,
@@ -141,7 +160,9 @@ public sealed class AgentCapabilityApprovalService(CSweetDbContext db, TimeProvi
             await db.Entry(row).ReloadAsync(token);
             return true;
         }
-        // Non-relational test stores have no concurrent writers.
+        // Non-relational stores have no concurrent writers, but the claim still has to be conditional:
+        // an already-claimed or superseded row must never be claimed twice.
+        if (row.Status != "Approved") return false;
         row.Status = "Executing"; row.Revision++; row.UpdatedAt = now;
         return true;
     }

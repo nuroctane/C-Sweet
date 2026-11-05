@@ -71,7 +71,8 @@ public static class AgentPostureEndpoints
             if (installation is null) return Results.NotFound();
 
             AgentPostureAssignment assignment;
-            try { assignment = await postures.SetAsync(installationId, posture, changedBy, cancellationToken); }
+            try { assignment = await postures.SetAsync(installationId, posture, changedBy,
+                http.User.IsInRole(CSweet.Infrastructure.Auth.AuthenticationService.AdministratorRole), cancellationToken); }
             catch (DbUpdateConcurrencyException) { return Results.Conflict(new { error = "posture_changed", message = "Refresh the agent posture and try again." }); }
             return Results.Ok(Respond(assignment, installation));
         });

@@ -1,5 +1,6 @@
 using CSweet.Application.Agents;
 using CSweet.Contracts.Agents;
+using CSweet.Domain.Setup;
 using CSweet.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,8 +18,14 @@ public sealed class DatabaseAgentPostureStore(CSweetDbContext db) : IAgentPostur
         return new(installationId, posture, row.PostureChangedAt, row.PostureChangedBy);
     }
 
+    public async ValueTask<bool> IsActiveAsync(Guid installationId, CancellationToken cancellationToken = default) =>
+        await db.AgentInstallations.AsNoTracking().AnyAsync(x => x.Id == installationId &&
+            x.IsEnabled && x.RevisionStatus == PluginRevisionStatus.Active, cancellationToken);
+
     public async ValueTask SaveAsync(AgentPostureAssignment assignment, CancellationToken cancellationToken = default)
     {
+        // Serialize against an in-flight approval claim so a downgrade cannot commit underneath one.
+        await using var transaction = await GovernanceTransaction.OpenAsync(db, assignment.InstallationId.ToString("D"), cancellationToken);
         var row = await db.AgentInstallations.SingleOrDefaultAsync(x => x.Id == assignment.InstallationId, cancellationToken)
             ?? throw new KeyNotFoundException("Installation not found.");
         var previous = row.Posture ?? "Manual";
@@ -33,16 +40,25 @@ public sealed class DatabaseAgentPostureStore(CSweetDbContext db) : IAgentPostur
             Actor: new CSweet.Application.Setup.AuditActor("Human", ApplicationUserId: assignment.ChangedByApplicationUserId)));
         await GovernanceEvents.EnqueueAsync(db, organization, row.Id, row.Id, $"{row.Posture}:{row.GovernanceRevision}", true, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public async ValueTask<bool> RemoveAsync(Guid installationId, CancellationToken cancellationToken = default)
     {
+        await using var transaction = await GovernanceTransaction.OpenAsync(db, installationId.ToString("D"), cancellationToken);
         var row = await db.AgentInstallations.SingleOrDefaultAsync(x => x.Id == installationId, cancellationToken);
         if (row is null || row.Posture is null) return false;
+        var previous = row.Posture;
         row.Posture = null; row.PostureChangedAt = null; row.PostureChangedBy = null; row.GovernanceRevision++;
         Guid.TryParse(row.BusinessId, out var organization);
+        // A reset is a posture change; the ledger must say who did it and what it replaced.
+        db.QueueAudit(new CSweet.Application.Setup.AuditEventWriteRequest("agents.posture.reset",
+            OrganizationId: organization == Guid.Empty ? null : organization, EntityType: "AgentInstallation", EntityId: row.Id,
+            Summary: $"Agent posture reset from {previous} to {AgentPostureService.Default}.",
+            Actor: new CSweet.Application.Setup.AuditActor("Human")));
         await GovernanceEvents.EnqueueAsync(db, organization, row.Id, row.Id, $"Manual:{row.GovernanceRevision}", true, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return true;
     }
 }

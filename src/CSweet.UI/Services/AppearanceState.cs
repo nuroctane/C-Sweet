@@ -51,7 +51,6 @@ public sealed class AppearanceState(IJSRuntime js)
         ++_revision;
         Select(selected);
         theme = selected.Id;
-        Changed?.Invoke();
         try
         {
             await js.InvokeVoidAsync("csweetAppearance.apply", theme);

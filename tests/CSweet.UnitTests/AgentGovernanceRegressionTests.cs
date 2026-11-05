@@ -24,7 +24,7 @@ public sealed class AgentGovernanceRegressionTests
     public async Task PostureIsSharedAcrossIndependentHostContextsAndAuditedAtomically()
     {
         await using var f = await Fixture.CreateAsync();
-        var service = new AgentPostureService(new DatabaseAgentPostureStore(f.Db), TimeProvider.System);
+        var service = new AgentPostureService(new DatabaseAgentPostureStore(f.Db), new PermissivePostureAuthorization(), TimeProvider.System);
         await service.SetAsync(f.Installation, AgentPosture.Plan, f.Owner);
         await using var host = new CSweetDbContext(f.Options);
         var read = await new DatabaseAgentPostureStore(host).FindAsync(f.Installation);
@@ -77,7 +77,7 @@ public sealed class AgentGovernanceRegressionTests
     {
         Assert.Equal(CapabilityRiskClass.Write, CapabilityRiskCatalog.Classify("work.tracking.processed.v1"));
         await using var f = await Fixture.CreateAsync();
-        await new AgentPostureService(new DatabaseAgentPostureStore(f.Db), TimeProvider.System).SetAsync(f.Installation, AgentPosture.Plan, f.Owner);
+        await new AgentPostureService(new DatabaseAgentPostureStore(f.Db), new PermissivePostureAuthorization(), TimeProvider.System).SetAsync(f.Installation, AgentPosture.Plan, f.Owner);
         var handler = new CountingHandler();
         var result = Assert.Single(await Invoke(f.Dispatcher(handler), f.Session, "work.tracking.processed.v1"));
         Assert.False(result.Succeeded); Assert.Equal(0, handler.Calls);
@@ -90,7 +90,7 @@ public sealed class AgentGovernanceRegressionTests
         await using var f = await Fixture.CreateAsync();
         await Invoke(f.Dispatcher(new CountingHandler()), f.Session);
         var approval = await f.Db.AgentCapabilityApprovals.SingleAsync();
-        await new AgentPostureService(new DatabaseAgentPostureStore(f.Db), TimeProvider.System).SetAsync(f.Installation, AgentPosture.Plan, f.Owner);
+        await new AgentPostureService(new DatabaseAgentPostureStore(f.Db), new PermissivePostureAuthorization(), TimeProvider.System).SetAsync(f.Installation, AgentPosture.Plan, f.Owner);
         await Assert.ThrowsAsync<InvalidOperationException>(() => f.Approvals.DecideAsync(f.Org, approval.Id, f.Owner, false, true));
     }
 
@@ -98,7 +98,7 @@ public sealed class AgentGovernanceRegressionTests
     public async Task MissingHandlerDoesNotCreateAnUnexecutableApproval()
     {
         await using var f = await Fixture.CreateAsync();
-        var dispatcher = new PlatformCapabilityDispatcher([], postures: new AgentPostureService(new DatabaseAgentPostureStore(f.Db), TimeProvider.System), approvals: f.Approvals);
+        var dispatcher = new PlatformCapabilityDispatcher([], postures: new AgentPostureService(new DatabaseAgentPostureStore(f.Db), new PermissivePostureAuthorization(), TimeProvider.System), approvals: f.Approvals, temporalPolicy: new PermissiveTemporalPolicy());
         Assert.False(Assert.Single(await Invoke(dispatcher, f.Session)).Succeeded);
         Assert.Empty(await f.Db.AgentCapabilityApprovals.ToListAsync());
     }
@@ -148,8 +148,8 @@ public sealed class AgentGovernanceRegressionTests
     {
         await using var f = await Fixture.CreateAsync();
         await Invoke(f.Dispatcher(new CountingHandler()), f.Session);
-        var reader = new AgentPostureService(new DatabaseAgentPostureStore(f.Db), TimeProvider.System);
-        var dispatcher = new PlatformCapabilityDispatcher([new AgentGovernanceCapabilityHandler(f.Db, reader)], postures: reader);
+        var reader = new AgentPostureService(new DatabaseAgentPostureStore(f.Db), new PermissivePostureAuthorization(), TimeProvider.System);
+        var dispatcher = new PlatformCapabilityDispatcher([new AgentGovernanceCapabilityHandler(f.Db, reader)], postures: reader, approvals: f.Approvals, temporalPolicy: new PermissiveTemporalPolicy());
         var result = Assert.Single(await Invoke(dispatcher, f.Session, AgentGovernanceCapabilityHandler.Read));
         Assert.True(result.Succeeded);
         using var document = System.Text.Json.JsonDocument.Parse(result.Payload.Span.ToArray());
@@ -179,7 +179,7 @@ public sealed class AgentGovernanceRegressionTests
         public CSweetDbContext Db = null!;
         public AgentCapabilityApprovalService Approvals = null!;
         public AgentSession Session => new("session", "test", Installation.ToString("D"), Org.ToString("D"), "runtime", "tick", new(new HashSet<string>(), new HashSet<string>(), new HashSet<string> { "work.item.create.v1", "work.tracking.processed.v1" }, 1));
-        public PlatformCapabilityDispatcher Dispatcher(IPlatformCapabilityHandler handler) => new([handler], postures: new AgentPostureService(new DatabaseAgentPostureStore(Db), TimeProvider.System), approvals: Approvals);
+        public PlatformCapabilityDispatcher Dispatcher(IPlatformCapabilityHandler handler) => new([handler], postures: new AgentPostureService(new DatabaseAgentPostureStore(Db), new PermissivePostureAuthorization(), TimeProvider.System), approvals: Approvals, temporalPolicy: new PermissiveTemporalPolicy());
         public static async Task<Fixture> CreateAsync()
         {
             var f = new Fixture(); f.Db = new(f.Options);

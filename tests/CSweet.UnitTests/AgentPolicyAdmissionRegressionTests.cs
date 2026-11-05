@@ -42,10 +42,10 @@ public sealed class AgentPolicyAdmissionRegressionTests
         Assert.False((await reader.TryAdmitAsync(threshold, candidate with { BusinessId = Guid.NewGuid().ToString("D") })).Allowed);
 
         // Prove the production dispatcher consumes admission before a destructive handler runs.
-        var posture = new AgentPostureService(new InMemoryAgentPostureStore(), TimeProvider.System);
+        var posture = new AgentPostureService(new InMemoryAgentPostureStore(), new PermissivePostureAuthorization(), TimeProvider.System);
         await posture.SetAsync(installation, AgentPosture.Auto, Guid.NewGuid());
         var probe = new Probe();
-        var dispatcher = new PlatformCapabilityDispatcher([probe], postures: posture, temporalPolicy: reader);
+        var dispatcher = new PlatformCapabilityDispatcher([probe], postures: posture, approvals: new UnusedApprovalService(), temporalPolicy: reader);
         var session = new AgentSession("session", "test", installation.ToString("D"), organization.ToString("D"), "runtime", "tick",
             new(new HashSet<string>(), new HashSet<string>(), new HashSet<string> { "compute.destroy.v1" }, 1));
         for (var attempt = 0; attempt < 4; attempt++)

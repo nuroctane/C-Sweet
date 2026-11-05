@@ -83,6 +83,13 @@ public interface IAgentPostureStore
     /// <summary>The stored assignment, or <c>null</c> when this installation has no posture yet.</summary>
     ValueTask<AgentPostureAssignment?> FindAsync(Guid installationId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// True when the installation may still execute at all: it is enabled and sitting on an active
+    /// revision. A disabled or rolled-back installation keeps its stored posture, so callers must ask
+    /// this separately rather than treating a readable posture as permission to run.
+    /// </summary>
+    ValueTask<bool> IsActiveAsync(Guid installationId, CancellationToken cancellationToken = default);
+
     /// <summary>Writes the assignment, replacing any previous posture for the installation.</summary>
     ValueTask SaveAsync(AgentPostureAssignment assignment, CancellationToken cancellationToken = default);
 
@@ -118,6 +125,13 @@ public sealed class InMemoryAgentPostureStore : IAgentPostureStore
         return ValueTask.CompletedTask;
     }
 
+    /// <summary>In-memory fixtures carry no install lifecycle, so every known installation is active.</summary>
+    public ValueTask<bool> IsActiveAsync(Guid installationId, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(true);
+    }
+
     public ValueTask<bool> RemoveAsync(Guid installationId, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -133,6 +147,12 @@ public interface IAgentPostureReader
     /// when none was ever set. Never throws for an unknown installation.
     /// </summary>
     ValueTask<AgentPostureAssignment> GetAsync(Guid installationId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// False when the installation is disabled or no longer on an active revision. A caller that
+    /// enforces authority must refuse before consulting the posture when this is false.
+    /// </summary>
+    ValueTask<bool> IsActiveAsync(Guid installationId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -143,7 +163,7 @@ public interface IAgentPostureReader
 /// single-process tools only. The service is deliberately storage-agnostic.
 /// </para>
 /// </summary>
-public sealed class AgentPostureService(IAgentPostureStore store, TimeProvider? clock = null)
+public sealed class AgentPostureService(IAgentPostureStore store, IAgentPostureAuthorization authorization, TimeProvider? clock = null)
     : IAgentPostureReader
 {
     /// <summary>
@@ -162,6 +182,12 @@ public sealed class AgentPostureService(IAgentPostureStore store, TimeProvider? 
         return stored ?? new AgentPostureAssignment(installationId, Default);
     }
 
+    public ValueTask<bool> IsActiveAsync(Guid installationId, CancellationToken cancellationToken = default)
+    {
+        RequireInstallation(installationId);
+        return store.IsActiveAsync(installationId, cancellationToken);
+    }
+
     /// <summary>
     /// Records the posture for an installation and returns the assignment now in force. The
     /// previous value is intentionally not consulted: last write wins, and the caller records
@@ -170,11 +196,17 @@ public sealed class AgentPostureService(IAgentPostureStore store, TimeProvider? 
     public async ValueTask<AgentPostureAssignment> SetAsync(
         Guid installationId,
         AgentPosture posture,
-        Guid? changedByApplicationUserId = null,
+        Guid changedByApplicationUserId,
+        bool administrator = false,
         CancellationToken cancellationToken = default)
     {
         RequireInstallation(installationId);
         if (!Enum.IsDefined(posture)) throw new ArgumentOutOfRangeException(nameof(posture), posture, "Unknown agent posture.");
+        if (changedByApplicationUserId == Guid.Empty)
+            throw new UnauthorizedAccessException("Changing an agent posture requires an authenticated human.");
+        // The service is the public write surface, so it authorizes itself rather than trusting the caller.
+        if (!await authorization.CanChangeAsync(installationId, changedByApplicationUserId, administrator, cancellationToken).ConfigureAwait(false))
+            throw new UnauthorizedAccessException("You may not change this agent's posture.");
         var assignment = new AgentPostureAssignment(installationId, posture, Clock.GetUtcNow(), changedByApplicationUserId);
         await store.SaveAsync(assignment, cancellationToken).ConfigureAwait(false);
         return assignment;

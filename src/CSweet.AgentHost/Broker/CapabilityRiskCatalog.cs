@@ -19,6 +19,31 @@ public static class CapabilityRiskCatalog
     /// <summary>Risk class assumed for any capability that is not in the explicit table.</summary>
     public const CapabilityRiskClass DefaultRisk = CapabilityRiskClass.Write;
 
+    /// <summary>
+    /// Read-classified capabilities that still leave the instance, cost money per call, or both.
+    /// They stay <see cref="CapabilityRiskClass.Read"/> deliberately: classifying ordinary inference as
+    /// <see cref="CapabilityRiskClass.Outward"/> would make every chat turn queue for approval. Codemode
+    /// refuses them, and this set is the one place that records the distinction, so two lists cannot
+    /// drift into disagreeing about whether inference is egress.
+    /// </summary>
+    public static IReadOnlySet<string> EgressReadCapabilities { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "platform.llm.chat-stream.v1",
+        "platform.llm.chat.v1",
+        "web.fetch.v1",
+        "web.request.v1",
+        "web.socket.v1",
+        "web.research.read.v1",
+        "web.research.search.v1",
+        "genai.image.generate.v1",
+        "genai.image.edit.v1",
+        "genai.video.generate.v1",
+        "genai.video.edit.v1",
+        "git.workspace.publish.v2",
+        "platform.connector.action.request.v1",
+        "network.publish-port.v1"
+    };
+
     private static readonly IReadOnlyDictionary<string, CapabilityRiskClass> Table =
         new Dictionary<string, CapabilityRiskClass>(StringComparer.Ordinal)
         {

@@ -26,6 +26,16 @@ public static class CapabilityApprovalEndpoints
             catch (InvalidOperationException error) { return Results.Conflict(new { error = error.Message }); }
             catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException) { return Results.Conflict(); }
         });
+        // Releases an execution that was claimed but never completed, without repeating it.
+        group.MapPost("/{approvalId:guid}/abandon", async (Guid organizationId, Guid approvalId,
+            HttpContext http, IAgentCapabilityApprovalService service, CancellationToken token) =>
+        {
+            if (AgentPostureEndpoints.HumanSession(http) is not { } user) return Results.Forbid();
+            try { return Results.Ok(await service.AbandonAsync(organizationId, approvalId, user, IsAdministrator(http), token)); }
+            catch (UnauthorizedAccessException) { return Results.Forbid(); }
+            catch (KeyNotFoundException) { return Results.NotFound(); }
+            catch (InvalidOperationException error) { return Results.Conflict(new { error = error.Message }); }
+        });
         return endpoints;
     }
 

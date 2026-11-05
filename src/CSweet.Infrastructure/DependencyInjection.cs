@@ -272,6 +272,7 @@ public static class DependencyInjection
         builder.Services.AddSingleton<IBuilderArtifactResultStore>(sp => sp.GetRequiredService<InMemoryBuilderArtifactResultStore>());
         builder.Services.AddSingleton<IBuilderArtifactResultPublisher>(sp => sp.GetRequiredService<InMemoryBuilderArtifactResultStore>());
         builder.Services.AddScoped<IAgentPostureStore, DatabaseAgentPostureStore>();
+        builder.Services.AddScoped<IAgentPostureAuthorization, AgentPostureAuthorization>();
         builder.Services.AddScoped<AgentPostureService>();
         builder.Services.AddScoped<IAgentCapabilityApprovalService, AgentCapabilityApprovalService>();
         builder.Services.AddScoped<IAgentPostureReader>(sp => sp.GetRequiredService<AgentPostureService>());

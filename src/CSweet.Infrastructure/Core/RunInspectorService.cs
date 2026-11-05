@@ -18,7 +18,9 @@ public sealed class RunInspectorService(CSweetDbContext db, CurrentActivityServi
             ? await activity.FeedAsync(organization, user, employee, attemptId, workItem, after, token)
             : await activity.ModelFeedAsync(organization, user, employee, modelRun!.Value, after, token);
         var installation = await db.CoreOrganizationUsers.AsNoTracking().Where(x => x.OrganizationId == organization && x.Id == employee)
-            .Select(x => x.AgentInstallationId).SingleAsync(token);
+            .Select(x => x.AgentInstallationId).SingleOrDefaultAsync(token);
+        // An employee outside this organization is a missing resource, not a server fault.
+        if (installation is null) throw new KeyNotFoundException("The employee is not part of this organization.");
         var query = db.AgentRunLogs.AsNoTracking().Where(x => x.OrganizationId == organization && x.AgentInstallationId == installation &&
             (attempt.HasValue ? x.AgentWorkAttemptId == attempt && x.WorkItemId == workItem : x.Id == modelRun));
         var runs = await query.OrderBy(x => x.StartedAt).ThenBy(x => x.Id).Take(101).ToListAsync(token);

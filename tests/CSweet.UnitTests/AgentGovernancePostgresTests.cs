@@ -30,7 +30,7 @@ public sealed class AgentGovernancePostgresTests
             db.AgentInstallationGrants.Add(new() { Id = Guid.NewGuid(), AgentInstallationId = installation, GrantRevision = 1 });
             await db.SaveChangesAsync();
             var actor = Guid.NewGuid();
-            var postures = new AgentPostureService(new DatabaseAgentPostureStore(db), TimeProvider.System);
+            var postures = new AgentPostureService(new DatabaseAgentPostureStore(db), new PermissivePostureAuthorization(), TimeProvider.System);
             await postures.SetAsync(installation, AgentPosture.Plan, actor);
             await using (var host = new CSweetDbContext(options))
                 Assert.Equal(AgentPosture.Plan, (await new DatabaseAgentPostureStore(host).FindAsync(installation))!.Posture);

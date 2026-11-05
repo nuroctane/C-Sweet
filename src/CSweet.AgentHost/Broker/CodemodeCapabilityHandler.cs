@@ -290,6 +290,9 @@ public sealed class CodemodeCapabilityHandler : IPlatformCapabilityHandler
     {
         if (string.IsNullOrWhiteSpace(capability))
             return true;
+        // One source for "read-shaped but still egress" so this list cannot drift from the catalog.
+        if (CapabilityRiskCatalog.EgressReadCapabilities.Contains(capability))
+            return true;
         foreach (var denied in DeniedCapabilities)
         {
             if (string.Equals(denied, capability, StringComparison.OrdinalIgnoreCase))

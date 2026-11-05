@@ -12,4 +12,11 @@ public interface IAgentCapabilityApprovalService
         CancellationToken token = default);
     Task<CapabilityApprovalResponse> DecideAsync(Guid organization, Guid approval, Guid user, bool administrator,
         bool approve, CancellationToken token = default);
+
+    /// <summary>
+    /// Releases an approval stuck in <c>Executing</c> because the host died between claiming and
+    /// completing it. The execution is never repeated; it is recorded as failed so it can be reviewed.
+    /// </summary>
+    Task<CapabilityApprovalResponse> AbandonAsync(Guid organization, Guid approval, Guid user, bool administrator,
+        CancellationToken token = default);
 }
