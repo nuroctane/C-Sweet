@@ -1,5 +1,8 @@
 {
   "_": "Projects area, zh-Hans. Edit freely; tools/localization re-translate only keys whose English changed.",
+  "ProjectReleases.Correction": "纠正性工作",
+  "ProjectReleases.CorrectionFollowUp": "后续交付",
+  "ProjectReleases.CorrectionPending": "交付经理负责下一步纠正性规划。之前的审查记录仍会保留。",
   "Projects.PageTitle": "项目 - C-Sweet",
   "Projects.PageTitleWithProject": "{title} - C-Sweet",
   "Projects.Breadcrumb": "面包屑导航",

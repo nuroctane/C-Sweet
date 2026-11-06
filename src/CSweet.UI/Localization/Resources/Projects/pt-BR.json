@@ -1,5 +1,8 @@
 {
   "_": "Projects area, pt-BR. Edit freely; tools/localization re-translate only keys whose English changed.",
+  "ProjectReleases.Correction": "Trabalho corretivo",
+  "ProjectReleases.CorrectionFollowUp": "Entrega de acompanhamento",
+  "ProjectReleases.CorrectionPending": "O gerente de entrega é responsável pela próxima ação de planejamento corretivo. A revisão anterior continua registrada.",
   "Projects.PageTitle": "Projetos - C-Sweet",
   "Projects.PageTitleWithProject": "{title} - C-Sweet",
   "Projects.Breadcrumb": "Trilha de navegação",

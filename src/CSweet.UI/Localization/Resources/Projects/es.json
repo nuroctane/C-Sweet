@@ -1,5 +1,8 @@
 {
   "_": "Projects area, es. Edit freely; tools/localization re-translate only keys whose English changed.",
+  "ProjectReleases.Correction": "Trabajo correctivo",
+  "ProjectReleases.CorrectionFollowUp": "Entrega de seguimiento",
+  "ProjectReleases.CorrectionPending": "El responsable de la entrega se encarga de la próxima acción de planificación correctiva. La revisión anterior queda registrada.",
   "Projects.PageTitle": "Proyectos - C-Sweet",
   "Projects.PageTitleWithProject": "{title} - C-Sweet",
   "Projects.Breadcrumb": "Ruta de navegación",

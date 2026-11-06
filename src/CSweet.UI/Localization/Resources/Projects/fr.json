@@ -1,5 +1,8 @@
 {
   "_": "Projects area, fr. Edit freely; tools/localization re-translate only keys whose English changed.",
+  "ProjectReleases.Correction": "Travail correctif",
+  "ProjectReleases.CorrectionFollowUp": "Livraison de suivi",
+  "ProjectReleases.CorrectionPending": "Le responsable de la livraison prend en charge la prochaine action de planification corrective. La revue précédente reste enregistrée.",
   "Projects.PageTitle": "Projets - C-Sweet",
   "Projects.PageTitleWithProject": "{title} - C-Sweet",
   "Projects.Breadcrumb": "Fil d’Ariane",

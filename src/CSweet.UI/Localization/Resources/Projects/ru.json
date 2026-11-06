@@ -1,5 +1,8 @@
 {
   "_": "Projects area, ru. Edit freely; tools/localization re-translate only keys whose English changed.",
+  "ProjectReleases.Correction": "Корректирующая работа",
+  "ProjectReleases.CorrectionFollowUp": "Повторная поставка",
+  "ProjectReleases.CorrectionPending": "Следующее действие по корректирующему планированию — за менеджером поставки. Предыдущая проверка сохраняется в записи.",
   "Projects.PageTitle": "Проекты - C-Sweet",
   "Projects.PageTitleWithProject": "{title} - C-Sweet",
   "Projects.Breadcrumb": "Навигационная цепочка",
