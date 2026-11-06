@@ -232,6 +232,7 @@ app.MapCalendarEndpoints();
 app.MapAgentMemoryEndpoints();
 app.MapCommunicationEndpoints();
 app.MapAgentManagementEndpoints();
+app.MapAgentOnboardingRecoveryEndpoints();
 app.MapPluginManagementEndpoints();
 app.MapConnectionServiceAdministrationEndpoints();
 app.MapPluginSetupEndpoints();

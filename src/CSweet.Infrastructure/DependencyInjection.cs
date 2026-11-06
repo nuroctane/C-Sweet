@@ -128,6 +128,7 @@ public static class DependencyInjection
         builder.Services.AddScoped<CSweet.Infrastructure.Compute.ComputeGrantAdministration>();
         builder.Services.AddScoped<CSweet.Infrastructure.Compute.ComputePublicationAccess>();
         builder.Services.AddScoped<CSweet.Infrastructure.Compute.ComputeDependencyAccess>();
+        builder.Services.AddScoped<CSweet.Infrastructure.Compute.ComputeBuildInputAccess>();
         builder.Services.AddScoped<CSweet.Application.Compute.IComputeNodeTrust>(sp => sp.GetRequiredService<CSweet.Infrastructure.Compute.ComputeRegistry>());
         builder.Services.AddScoped<CSweet.Application.Compute.IComputeTemplateCatalog>(sp => sp.GetRequiredService<CSweet.Infrastructure.Compute.ComputeRegistry>());
         builder.Services.AddScoped<CSweet.Infrastructure.Compute.ComputeBroker>();
@@ -249,6 +250,7 @@ public static class DependencyInjection
         builder.Services.AddScoped<ConnectorActionApprovalService>();
         builder.Services.AddScoped<ConnectorBindingService>();
         builder.Services.AddScoped<ConnectorProfileApprovalService>();
+        builder.Services.AddScoped<ConnectorCredentialAuthority>();
         builder.Services.AddScoped<ConnectorPlanService>();
         builder.Services.AddScoped<ConnectorStandingPolicyService>();
         builder.Services.AddScoped<IConnectorHttpTransport, ConnectorHttpTransport>();
@@ -491,6 +493,7 @@ public static class DependencyInjection
         builder.Services.AddScoped<IWorkInstructionPublicationService, WorkInstructionPublicationService>();
         builder.Services.AddScoped<IWorkSprintService, WorkSprintService>();
         builder.Services.AddScoped<AgentWorkInbox>();
+        builder.Services.AddScoped<AgentOnboardingRecoveryService>();
         builder.Services.AddScoped<AgentWorkRouter>();
         builder.Services.AddScoped<IWorkOrchestrationService, WorkOrchestrationService>();
         builder.Services.AddScoped<IWorkOrchestrator, WorkOrchestrator>();

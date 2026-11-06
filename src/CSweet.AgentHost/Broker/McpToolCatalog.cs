@@ -55,7 +55,8 @@ public sealed record McpToolDescriptor(
 public sealed class McpToolCatalog(
     IEnumerable<IPlatformCapabilityHandler> handlers,
     IOptions<McpGatewayOptions>? gatewayOptions = null,
-    RemoteMcpAccountService? remoteMcp = null)
+    RemoteMcpAccountService? remoteMcp = null,
+    ConnectorCredentialAuthority? credentials = null)
 {
     private readonly McpGatewayOptions? _gatewayLimits = gatewayOptions?.Value;
     private static readonly JsonElement EmptyInput = Schema("""
@@ -96,6 +97,7 @@ public sealed class McpToolCatalog(
         Write(W.WorkDeliveryCapabilities.Accept, "accept_delivery_candidate", "Assigned manager decision on the exact epic or release candidate and criteria."),
         Write(W.WorkDeliveryCapabilities.Review, "review_delivery_candidate", "Assigned independent human review with exact candidate and criterion evidence."),
         Write(W.WorkDeliveryCapabilities.Recover, "recover_delivery_promotion", "Resume unfinished delivery operations while preserving successful promotion receipts."),
+        Write(W.WorkDeliveryCapabilities.Correct, "coordinate_delivery_correction", "Bind authorized corrective tasks and a follow-up validation plan to retained findings, independently of status reporting."),
         Read(ProjectHealthCapabilities.Read, "read_project_health", "Read current health of an authorized Producer project."),
         Read(ProjectHealthCapabilities.Diagnostics, "read_project_diagnostics", "Inspect bounded, sanitized evidence for an authorized project incident."),
         Read(ProjectHealthCapabilities.Incidents, "read_management_incidents", "Discover pending incidents or read one authorized incident by identifier."),
@@ -527,7 +529,10 @@ public sealed class McpToolCatalog(
                         x.RevokedAt == null &&
                         x.ProviderInstallation != null &&
                         x.ProviderInstallation.IsEnabled &&
-                        x.ProviderInstallation.BusinessId == session.BusinessId &&
+                        (x.ProviderInstallation.BusinessId == session.BusinessId ||
+                         x.ProviderInstallation.Scope == PluginInstallationScope.System &&
+                         x.PluginAccountBusinessGrantId != null && x.PluginAccountResourceId != null &&
+                         x.PluginAccountConnectionId != null) &&
                         x.ProviderInstallation.RevisionStatus == PluginRevisionStatus.Active)
             .Include(x => x.ProviderInstallation!)
                 .ThenInclude(x => x.PackageVersion)
@@ -539,12 +544,20 @@ public sealed class McpToolCatalog(
             var manifest = JsonSerializer.Deserialize<PluginManifest>(
                 binding.ProviderInstallation!.PackageVersion!.ManifestJson,
                 new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            // Native enterprise accounts are shared through explicit business/resource authority,
+            // not by moving the system installation into the consuming business. This is only a
+            // candidate path: the normal connector authority check below must still succeed.
+            if (binding.ProviderInstallation.BusinessId != session.BusinessId &&
+                (binding.ProviderInstallation.Scope != PluginInstallationScope.System ||
+                 binding.ProviderInstallation.PackageVersion!.PluginKind != PluginKind.Connector ||
+                 manifest?.Kind != "connector" || manifest.Accounts is null))
+                continue;
             if (manifest?.Kind == "remote-mcp" && (remoteMcp is null || !Guid.TryParse(session.BusinessId, out var remoteBusiness) ||
                 !await remoteMcp.IsAvailableAsync(remoteBusiness, requesterId, binding.Capability, cancellationToken))) continue;
             if (manifest?.Kind != "remote-mcp" && binding.ProviderInstallation!.PackageVersion!.PluginKind == PluginKind.Connector &&
                 (manifest?.ProviderOperations.SingleOrDefault(x => x.Capability == binding.Capability)?.Effect != "read" ||
                  !Guid.TryParse(session.BusinessId, out var organizationId) ||
-                 !await new ConnectorPlanService(db).IsAvailableAsync(organizationId, requesterId, binding.Capability, cancellationToken)))
+                 !await new ConnectorPlanService(db, credentials).IsAvailableAsync(organizationId, requesterId, binding.Capability, cancellationToken)))
                 continue;
             var declaration = manifest?.Provides.SingleOrDefault(
                 x => string.Equals(x.Name, binding.Capability, StringComparison.Ordinal));

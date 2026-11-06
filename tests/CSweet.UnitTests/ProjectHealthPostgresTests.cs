@@ -88,10 +88,9 @@ public sealed partial class ProjectHealthPostgresTests
             Assert.Equal(2, statusMessages.Count);
             Assert.All(statusMessages, x => Assert.Contains("status report; no decision is requested", x.Content));
             Assert.Empty(await db.ExecutiveDecisions.ToListAsync());
-            // Escalated failures reach the owner as status reports: visible, but never a decision request.
-            var ownerAttention = await service.ReadAttentionAsync(org.Id, owner.Id, default);
-            Assert.NotEmpty(ownerAttention);
-            Assert.All(ownerAttention, x => { Assert.True(x.IsStatusReport); Assert.Null(x.ResolutionDecision); });
+            var ownerStatus = await service.ReadAttentionAsync(org.Id, owner.Id, default);
+            Assert.Equal(2, ownerStatus.Count);
+            Assert.All(ownerStatus, card => { Assert.True(card.IsStatusReport); Assert.Null(card.ResolutionDecision); });
             Assert.Empty(await service.ReadAttentionAsync(org.Id, producer.Id, default));
             var savedPersonal = await db.CoreWorkTasks.SingleAsync(x => x.Id == personal.Id);
             savedPersonal.Status = WorkTaskStatus.Completed;
@@ -139,8 +138,9 @@ public sealed partial class ProjectHealthPostgresTests
                 Assert.All(await db.ProjectIncidents.Where(x => x.Status == "Open").ToListAsync(), x => Assert.Equal(recipient, x.CurrentRecipientId));
             }
             await service.DeliverAsync(default);
-            Assert.All(await service.ReadAttentionAsync(org.Id, owner.Id, default),
-                x => { Assert.True(x.IsStatusReport); Assert.Null(x.ResolutionDecision); });
+            var routineStatus = await service.ReadAttentionAsync(org.Id, owner.Id, default);
+            Assert.Contains(routineStatus, card => card.Id == newIncidents.Single(i => i.Fingerprint == $"dependency-wait:{waiting.Id:N}").Id);
+            Assert.All(routineStatus, card => { Assert.True(card.IsStatusReport); Assert.Null(card.ResolutionDecision); });
             dependency = await db.CoreWorkTasks.SingleAsync(x => x.Id == waiting.Id);
             dependency.Status = WorkTaskStatus.Completed; dependency.WaitingReason = null;
             var retryMessage = new ConversationMessage { Id = Guid.NewGuid(), ConversationId = direct.Id,
