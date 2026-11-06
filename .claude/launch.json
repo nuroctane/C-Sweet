@@ -7,6 +7,13 @@
       "runtimeArgs": ["run", "--project", "tools/CSweet.Promo.Demo/CSweet.Promo.Demo.csproj"],
       "port": 5198,
       "url": "http://127.0.0.1:5198"
+    },
+    {
+      "name": "csweet-app",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--no-build", "--project", "src/CSweet.AppHost/CSweet.AppHost.csproj", "--launch-profile", "https"],
+      "port": 7125,
+      "url": "https://localhost:7125"
     }
   ]
 }
